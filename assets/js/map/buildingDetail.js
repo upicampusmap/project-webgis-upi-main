@@ -3,7 +3,7 @@ import { buildingsByName, markersByName, categoryVisibility, activeFilters, side
 import { getIconConfigByCategory } from "./categories.js";
 import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js";
 import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js";
-import { openSidebar, updateMobileSheetTitle, getMapPadding } from "./layout.js";
+import { openSidebar, updateMobileSheetTitle, getMapPadding, setSidebarView } from "./layout.js";
 
 let pulseTimer;
 let pulseElement;
@@ -28,9 +28,10 @@ function focusBuildingByName(name) {
   syncMarkersToFilter();
   syncCategoryLayerInputs();
   if (!map.hasLayer(buildingClusterGroup)) buildingClusterGroup.addTo(map);
-  map.stop();
   if (pendingHighlight) map.off("moveend", pendingHighlight);
-  pendingHighlight = () => buildingClusterGroup.zoomToShowLayer(marker, () => highlightMarker(marker));
+  map.stop();
+  // The selected zoom disables clustering. Highlight must never start another pan.
+  pendingHighlight = () => highlightMarker(marker);
   map.once("moveend", pendingHighlight);
   const position = marker.getLatLng();
   map.flyToBounds(L.latLngBounds(position, position), {
@@ -41,16 +42,21 @@ function focusBuildingByName(name) {
 export function openBuildingDetail(name) {
   const building = buildingsByName.get(name);
   if (!building) return;
+  map.closePopup();
+  document.getElementById("mapLegend")?.classList.remove("map-legend-expanded");
+  document.querySelector(".map-legend-toggle")?.setAttribute("aria-expanded", "false");
   sidebarState.tab = "locations";
   sidebarState.building = name;
   openSidebar();
   renderBuildingDetail(building);
+  document.querySelector(".detail-building-name")?.focus({ preventScroll: true });
   focusBuildingByName(name);
 }
 
 export function renderBuildingDetail(building) {
   const container = document.getElementById("sidebarContent");
   if (!container) return;
+  setSidebarView("detail");
   const icon = getIconConfigByCategory(building.category, building.name);
   const name = escapeHtml(building.name);
   const website = safeWebUrl(building.linkWeb);
@@ -74,7 +80,7 @@ export function renderBuildingDetail(building) {
     <div class="detail-body">
       <span class="detail-category-badge" style="background:${icon.color}18;color:${icon.color};border:1px solid ${icon.color}40;">
         <i class="fa-solid ${icon.icon}"></i> ${icon.label}</span>
-      <h2 class="detail-building-name">${name}</h2>
+      <h2 class="detail-building-name" tabindex="-1">${name}</h2>
       ${building.description ? `<p class="detail-description">${escapeHtml(building.description)}</p>` : ""}
       ${rows.length ? `<div class="detail-info-section">${rows.join("")}</div>` : ""}
       ${facilities}

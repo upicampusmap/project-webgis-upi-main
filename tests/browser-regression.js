@@ -154,6 +154,54 @@ try {
     suggestions[0].click();
     assert(document.querySelector(".detail-building-name").textContent === name, "Suggestion failed to open detail");
   });
+  await check("Detail view hides browsing chrome and supports long content scrolling", () => {
+    detail.openBuildingDetail("Asrama UPI A");
+    assert(document.getElementById("sidebar").dataset.view === "detail", "Detail state not applied");
+    assert(getComputedStyle(document.querySelector(".search-section")).display === "none", "Search crowds detail");
+    assert(getComputedStyle(document.querySelector(".sidebar-tabs")).display === "none", "Tabs crowd detail");
+    assert(document.querySelector(".detail-img-wrap").getBoundingClientRect().height >= 120, "Photo collapsed");
+    const content = document.getElementById("sidebarContent");
+    content.scrollTop = content.scrollHeight;
+    const actions = document.querySelector(".detail-actions").getBoundingClientRect();
+    const visible = content.getBoundingClientRect();
+    assert(actions.bottom <= visible.bottom + 2, "Detail actions cannot be reached by scrolling");
+  });
+  await check("Direct parking click yields one bounded popup above mobile sheet", async () => {
+    core.map.stop();
+    state.parkingItems[0].layer.openPopup(state.parkingItems[0].layer.getBounds().getCenter());
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    const popup = document.querySelector(".leaflet-popup");
+    assert(popup && document.querySelectorAll(".leaflet-popup").length === 1, "Multiple/missing popups");
+    const rect = popup.getBoundingClientRect();
+    const toolbar = document.querySelector(".topbar").getBoundingClientRect();
+    assert(rect.left >= -1 && rect.right <= innerWidth + 1, `Popup overflows horizontally ${rect.left}/${rect.right}`);
+    assert(rect.top >= toolbar.bottom, `Popup behind toolbar ${rect.top}/${toolbar.bottom}`);
+    if (innerWidth <= 700) {
+      assert(document.getElementById("sidebar").classList.contains("closed"), "Mobile panel did not collapse");
+      const sheet = document.getElementById("sidebar").getBoundingClientRect();
+      assert(rect.bottom <= sheet.top, `Popup behind sheet ${rect.bottom}/${sheet.top}`);
+    }
+  });
+  await check("Selecting building closes old popup and switches details cleanly", () => {
+    detail.openBuildingDetail("Asrama UPI A");
+    detail.openBuildingDetail("Gedung Isola (Rektorat UPI)");
+    assert(document.querySelector(".detail-building-name").textContent === "Gedung Isola (Rektorat UPI)", "Stale building details");
+    const oldPopup = document.querySelector(".leaflet-popup");
+    assert(!oldPopup || getComputedStyle(oldPopup).visibility === "hidden", "Old popup covers details");
+    assert(!document.getElementById("sidebar").classList.contains("closed"), "Detail sheet stayed closed");
+    document.querySelector("[data-back-locations]").click();
+    assert(document.getElementById("sidebar").dataset.view === "browse", "Back did not restore browsing");
+    assert(getComputedStyle(document.querySelector(".search-section")).display !== "none", "Search not restored");
+  });
+  await check("Responsive toolbar and sidebar fit viewport without horizontal overflow", () => {
+    const toolbar = document.querySelector(".topbar").getBoundingClientRect();
+    const sidebarRect = document.getElementById("sidebar").getBoundingClientRect();
+    assert(toolbar.left >= 0 && toolbar.right <= innerWidth, "Toolbar outside viewport");
+    assert(sidebarRect.left >= 0 && sidebarRect.right <= innerWidth, "Sidebar outside viewport");
+    assert(document.documentElement.scrollWidth <= innerWidth, "Page horizontally overflows");
+    const icons = [...document.querySelectorAll(".topbar-icon, .topbar-btn")].filter((element) => getComputedStyle(element).display !== "none");
+    assert(icons.every((element) => element.getBoundingClientRect().right <= toolbar.right), "Toolbar actions clipped");
+  });
   sidebar.showTab("locations");
   core.map.closePopup();
   const failed = results.filter((result) => result.startsWith("FAIL")).length;

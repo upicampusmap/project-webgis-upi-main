@@ -9,7 +9,7 @@ import { renderLegendItems, toggleLegend } from "./legend.js";
 import {
   renderSidebarSkeleton, showTab, renderActiveSidebarTab
 } from "./sidebar.js";
-import { toggleSidebar, updateSidebarChrome } from "./layout.js";
+import { toggleSidebar, updateSidebarChrome, initLayout, closeSidebar } from "./layout.js";
 import { searchBuilding, initSearchAutocomplete } from "./search.js";
 import { locateMe, removeUserLocation } from "./geolocation.js";
 import {
@@ -97,5 +97,12 @@ window.addEventListener("resize", () => {
 window.addEventListener("beforeprint", () => map.invalidateSize({ animate: false }));
 window.addEventListener("afterprint", () => map.invalidateSize({ animate: false }));
 
-updateSidebarChrome();
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape") return;
+  map.closePopup();
+  if (sidebarState.building) showTab("locations");
+  else closeSidebar();
+});
+
+initLayout();
 await initApp();

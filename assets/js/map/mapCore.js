@@ -11,9 +11,7 @@ export const map = L.map('map', {
   zoom: INITIAL_ZOOM,
   minZoom: 14,
   maxZoom: 20,
-  zoomControl: false,
-  maxBounds: campusBounds.pad(0.25),
-  maxBoundsViscosity: 0.8
+  zoomControl: false
 });
 
 // Pindahkan zoom control ke kanan atas agar tidak bertabrakan dengan sidebar

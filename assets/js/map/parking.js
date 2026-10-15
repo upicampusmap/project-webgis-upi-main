@@ -93,7 +93,7 @@ async function loadParkingType(type) {
         const item = byFeature.get(feature);
         item.layer = polygon;
         // Build popup HTML only when the polygon is opened.
-        polygon.bindPopup(() => createParkingPopupContent(item));
+        polygon.bindPopup(() => createParkingPopupContent(item), { autoPan: false, maxWidth: 280, closeButton: true });
       }
     });
     const previous = parkingTypeLayers.get(type);

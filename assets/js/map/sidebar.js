@@ -14,11 +14,12 @@ import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInp
 import { renderBuildingDetail } from "./buildingDetail.js";
 import { syncCategoryLayerInputs } from "./markerVisibility.js";
 import { escapeHtml } from "./utils.js";
-import { updateMobileSheetTitle } from "./layout.js";
+import { updateMobileSheetTitle, setSidebarView } from "./layout.js";
 
 export function renderLocations() {
   const container = document.getElementById("sidebarContent");
   sidebarState.building = null;
+  setSidebarView("browse");
   const grouped = getGroupedBuildings();
   const visibleKeys = getVisibleCategoryKeys();
 
@@ -42,7 +43,7 @@ export function renderLocations() {
   });
   filterHtml += `</div>`;
 
-  let html = filterHtml + `
+  let html = `<div class="browse-heading"><h2>Jelajahi kampus</h2><p><span class="location-total">${Object.values(grouped).flat().length} lokasi</span> · Temukan gedung dan fasilitas UPI</p></div>` + filterHtml + `
     <div class="layer-group-title">
       Lokasi Gedung per Kategori
       ${activeFilters.size > 0 ? `<span class="filter-active-badge">${activeFilters.size} filter aktif</span>` : ""}
@@ -245,6 +246,8 @@ export function renderSidebarSkeleton() {
 
 export function showTab(tabName) {
   if (!["locations", "layers", "info"].includes(tabName)) return;
+  map.closePopup();
+  setSidebarView("browse");
   sidebarState.tab = tabName;
   sidebarState.building = null;
   document.querySelectorAll(".sidebar-tabs button").forEach((button) => {

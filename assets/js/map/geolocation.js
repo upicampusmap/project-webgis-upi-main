@@ -51,7 +51,7 @@ export function locateMe() {
       });
 
       userLocationMarker = L.marker([lat, lng], { icon: userIcon })
-        .bindPopup("<b>Posisi Anda</b><br>Akurasi: ~" + Math.round(accuracy) + " meter")
+        .bindPopup("<b>Posisi Anda</b><br>Akurasi: ~" + Math.round(accuracy) + " meter", { autoPan: false })
         .addTo(map);
 
       userAccuracyCircle = L.circle([lat, lng], {
