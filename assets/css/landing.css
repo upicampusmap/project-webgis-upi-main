@@ -24,7 +24,7 @@ body {
       rgba(4, 9, 30, 0.65),
       rgba(4, 9, 30, 0.65)
     ),
-    url("../../images/banner.png");
+    url("../../images/banner.webp");
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -285,4 +285,11 @@ p {
   .campus-map-preview img {
     width: 95%;
   }
+}
+.menu-button { display: none; border: 0; background: transparent; cursor: pointer; }
+@media (max-width: 700px) { .menu-button { display: block; } }
+button:focus-visible, a:focus-visible { outline: 3px solid #60a5fa; outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .nav-links, .course-col, .hero-btn { transition: none; }
 }

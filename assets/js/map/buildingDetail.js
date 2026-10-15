@@ -1,164 +1,109 @@
-// =====================================================
-// buildingDetail.js — Detail gedung, fokus peta, dan share
-// Tanggung jawab: membuka & merender panel detail gedung di sidebar,
-// menerbangkan peta ke gedung, efek highlight marker, dan berbagi tautan.
-// =====================================================
-import { map } from "./mapCore.js";
-import { buildings, buildingMarkers, categoryVisibility } from "./state.js";
+import { map, buildingClusterGroup } from "./mapCore.js";
+import { buildingsByName, markersByName, categoryVisibility, activeFilters, sidebarState } from "./state.js";
 import { getIconConfigByCategory } from "./categories.js";
-import { getInitials, showToast } from "./utils.js";
-import { setCategoryVisible, syncCategoryLayerInputs } from "./markerVisibility.js";
-import { updateSidebarChrome } from "./sidebar.js";
+import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js";
+import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js";
+import { openSidebar, updateMobileSheetTitle, getMapPadding } from "./layout.js";
 
-export function highlightMarker(marker) {
-  var el = marker._icon;
-  if (!el) return;
-  el.classList.add("marker-pulse");
-  setTimeout(function() { el.classList.remove("marker-pulse"); }, 2000);
+let pulseTimer;
+let pulseElement;
+let pendingHighlight;
+
+function highlightMarker(marker) {
+  const element = marker.getElement();
+  if (!element) return;
+  clearTimeout(pulseTimer);
+  pulseElement?.classList.remove("marker-pulse");
+  pulseElement = element;
+  element.classList.add("marker-pulse");
+  pulseTimer = setTimeout(() => element.classList.remove("marker-pulse"), 2000);
 }
 
-export function showCategoryForMarker(marker) {
-  if (marker && categoryVisibility[marker.categoryKey] === false) {
-    setCategoryVisible(marker.categoryKey, true);
-    syncCategoryLayerInputs();
-  }
-}
-
-export function focusBuildingByName(name) {
-  var marker = buildingMarkers.find(function(item) {
-    return item.buildingData.name === name;
+function focusBuildingByName(name) {
+  const marker = markersByName.get(name);
+  if (!marker) return;
+  const key = marker.categoryKey;
+  categoryVisibility[key] = true;
+  if (activeFilters.size && !activeFilters.has(key)) activeFilters.add(key);
+  syncMarkersToFilter();
+  syncCategoryLayerInputs();
+  if (!map.hasLayer(buildingClusterGroup)) buildingClusterGroup.addTo(map);
+  map.stop();
+  if (pendingHighlight) map.off("moveend", pendingHighlight);
+  pendingHighlight = () => buildingClusterGroup.zoomToShowLayer(marker, () => highlightMarker(marker));
+  map.once("moveend", pendingHighlight);
+  const position = marker.getLatLng();
+  map.flyToBounds(L.latLngBounds(position, position), {
+    ...getMapPadding(), maxZoom: 19, duration: 0.8, animate: !window.matchMedia("(prefers-reduced-motion: reduce)").matches
   });
-
-  if (marker) {
-    showCategoryForMarker(marker);
-    map.flyTo(marker.getLatLng(), 19, { duration: 0.8 });
-    setTimeout(function() {
-      highlightMarker(marker);
-    }, 850);
-  }
 }
 
 export function openBuildingDetail(name) {
-  var building = buildings.find(function(b) { return b.name === name; });
+  const building = buildingsByName.get(name);
   if (!building) return;
-
-  var marker = buildingMarkers.find(function(m) { return m.buildingData.name === name; });
-  if (marker) {
-    showCategoryForMarker(marker);
-    map.flyTo(marker.getLatLng(), 19, { duration: 0.8 });
-    setTimeout(function() { highlightMarker(marker); }, 850);
-  }
-
-  // Mobile: buka sidebar agar detail terlihat
-  if (window.innerWidth <= 700) {
-    var sidebar = document.getElementById("sidebar");
-    if (sidebar.classList.contains("closed")) {
-      sidebar.classList.remove("closed");
-      updateSidebarChrome();
-      setTimeout(function() { map.invalidateSize(); }, 300);
-    }
-  }
-
+  sidebarState.tab = "locations";
+  sidebarState.building = name;
+  openSidebar();
   renderBuildingDetail(building);
+  focusBuildingByName(name);
 }
 
 export function renderBuildingDetail(building) {
-  var container = document.getElementById("sidebarContent");
-  var iconConfig = getIconConfigByCategory(building.category, building.name);
-  var safeName = building.name.replace(/'/g, "\\'");
-  var coords = building.coords;
-
-  var imgSrc = building.image || "images/banner.png";
-  var initials = getInitials(building.name);
-  var badgeColor = iconConfig ? iconConfig.color : "#6b7280";
-  var badgeLabel = iconConfig ? iconConfig.label : building.category;
-  var badgeIcon  = iconConfig ? iconConfig.icon : "fa-building";
-
-  // Info rows
-  var infoRows = "";
-  if (building.hours) {
-    infoRows += `<div class="detail-info-row"><i class="fa-regular fa-clock"></i><span>${building.hours}</span></div>`;
-  }
-  if (building.floors) {
-    infoRows += `<div class="detail-info-row"><i class="fa-solid fa-layer-group"></i><span>${building.floors} lantai</span></div>`;
-  }
+  const container = document.getElementById("sidebarContent");
+  if (!container) return;
+  const icon = getIconConfigByCategory(building.category, building.name);
+  const name = escapeHtml(building.name);
+  const website = safeWebUrl(building.linkWeb);
+  const rows = [];
+  if (building.hours) rows.push(`<div class="detail-info-row"><i class="fa-regular fa-clock"></i><span>${escapeHtml(building.hours)}</span></div>`);
+  if (building.floors) rows.push(`<div class="detail-info-row"><i class="fa-solid fa-layer-group"></i><span>${escapeHtml(building.floors)} lantai</span></div>`);
   if (building.phone) {
-    infoRows += `<div class="detail-info-row"><i class="fa-solid fa-phone"></i><a href="tel:${building.phone}">${building.phone}</a></div>`;
+    const phone = building.phone.replace(/[^+0-9]/g, "");
+    rows.push(`<div class="detail-info-row"><i class="fa-solid fa-phone"></i><a href="tel:${phone}">${escapeHtml(building.phone)}</a></div>`);
   }
-
-  // Facilities chips
-  var facilitiesHtml = "";
-  if (building.facilities && building.facilities.length > 0) {
-    var chips = building.facilities.map(function(f) {
-      return `<span class="detail-facility-chip">${f}</span>`;
-    }).join("");
-    facilitiesHtml = `
-      <div class="detail-section">
-        <div class="detail-section-title"><i class="fa-solid fa-list-check"></i> Fasilitas</div>
-        <div class="detail-facilities">${chips}</div>
-      </div>`;
-  }
-
-  container.innerHTML = `
-    <div class="building-detail-panel">
-      <button class="detail-back-btn" onclick="showTab('locations', document.querySelector('.sidebar-tabs button'))">
-        <i class="fa-solid fa-arrow-left"></i> Kembali ke Daftar
-      </button>
-
-      <div class="detail-img-wrap">
-        <img src="${imgSrc}" alt="${building.name}"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-        <div class="detail-img-fallback" style="display:none;background:${badgeColor}22;color:${badgeColor};">
-          ${initials}
-        </div>
-      </div>
-
-      <div class="detail-body">
-        <span class="detail-category-badge" style="background:${badgeColor}18;color:${badgeColor};border:1px solid ${badgeColor}40;">
-          <i class="fa-solid ${badgeIcon}"></i> ${badgeLabel}
-        </span>
-
-        <h2 class="detail-building-name">${building.name}</h2>
-
-        ${building.description ? `<p class="detail-description">${building.description}</p>` : ""}
-
-        ${infoRows ? `<div class="detail-info-section">${infoRows}</div>` : ""}
-
-        ${facilitiesHtml}
-
-        <div class="detail-actions">
-          ${building.linkWeb ? `
-          <a class="detail-btn detail-btn-website" href="${building.linkWeb}" target="_blank" rel="noopener">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i> Kunjungi Website
-          </a>` : ""}
-          <button class="detail-btn detail-btn-share" onclick="shareBuilding('${safeName}', [${coords[0]},${coords[1]}])">
-            <i class="fa-solid fa-share-nodes"></i> Bagikan Lokasi
-          </button>
-        </div>
+  const facilities = building.facilities.length ? `<div class="detail-section">
+    <div class="detail-section-title"><i class="fa-solid fa-list-check"></i> Fasilitas</div>
+    <div class="detail-facilities">${building.facilities.map((facility) => `<span class="detail-facility-chip">${escapeHtml(facility)}</span>`).join("")}</div>
+  </div>` : "";
+  container.innerHTML = `<div class="building-detail-panel">
+    <button class="detail-back-btn" data-back-locations><i class="fa-solid fa-arrow-left"></i> Kembali ke Daftar</button>
+    <div class="detail-img-wrap">
+      ${building.image ? `<img src="${escapeHtml(building.image)}" alt="${name}" decoding="async">` : ""}
+      <div class="detail-img-fallback" style="display:${building.image ? "none" : "flex"};background:${icon.color}22;color:${icon.color};">${escapeHtml(getInitials(building.name))}</div>
+    </div>
+    <div class="detail-body">
+      <span class="detail-category-badge" style="background:${icon.color}18;color:${icon.color};border:1px solid ${icon.color}40;">
+        <i class="fa-solid ${icon.icon}"></i> ${icon.label}</span>
+      <h2 class="detail-building-name">${name}</h2>
+      ${building.description ? `<p class="detail-description">${escapeHtml(building.description)}</p>` : ""}
+      ${rows.length ? `<div class="detail-info-section">${rows.join("")}</div>` : ""}
+      ${facilities}
+      <div class="detail-actions">
+        ${website ? `<a class="detail-btn detail-btn-website" href="${escapeHtml(website)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> Kunjungi Website</a>` : ""}
+        <button class="detail-btn detail-btn-share"><i class="fa-solid fa-share-nodes"></i> Bagikan Lokasi</button>
       </div>
     </div>
-  `;
-
-  // Tandai tab Lokasi sebagai aktif
-  document.querySelectorAll(".sidebar-tabs button").forEach(function(btn) {
-    btn.classList.toggle("active", btn.textContent.trim() === "Lokasi");
+  </div>`;
+  const image = container.querySelector(".detail-img-wrap img");
+  if (image) {
+    const showFallback = () => { image.style.display = "none"; image.nextElementSibling.style.display = "flex"; };
+    image.addEventListener("error", showFallback, { once: true });
+    if (image.complete && !image.naturalWidth) showFallback();
+  }
+  container.querySelector(".detail-btn-share").addEventListener("click", () => shareBuilding(building.name));
+  document.querySelectorAll(".sidebar-tabs button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === "locations");
   });
+  updateMobileSheetTitle("Detail Lokasi");
+  container.scrollTop = 0;
 }
 
-export function shareBuilding(name, coordsOrUrl) {
-  var url;
-  if (typeof coordsOrUrl === "string") {
-    url = coordsOrUrl;
-  } else {
-    url = window.location.origin + window.location.pathname + "?building=" + encodeURIComponent(name);
-  }
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(function() {
-      showToast("Tautan lokasi disalin!");
-    }).catch(function() {
-      showToast("Gagal menyalin tautan.");
-    });
-  } else {
-    showToast("Salin: " + url);
-  }
+export async function shareBuilding(name) {
+  const url = new URL(window.location.href);
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("building", name);
+  if (!navigator.clipboard?.writeText) { showToast(`Salin: ${url.href}`); return; }
+  try { await navigator.clipboard.writeText(url.href); showToast("Tautan lokasi disalin!"); }
+  catch { showToast(`Salin: ${url.href}`); }
 }

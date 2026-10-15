@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <base href="../">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Interactive Campus Map UPI</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <!-- Leaflet.markercluster CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+
+  <!-- Font Awesome untuk icon -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+  >
+
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap"
+    rel="stylesheet"
+  >
+  <!-- CSS khusus halaman peta -->
+  <link rel="stylesheet" href="assets/css/map.css" />
+</head>
+
+<body>
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="topbar-left">
+      <img src="images/logo.png" alt="Logo UPI">
+      <h1>UPI Campus Map</h1>
+    </div>
+
+    <div class="topbar-right">
+      <a href="index.html" class="topbar-btn">Beranda</a>
+      <button
+        class="topbar-icon topbar-locate-btn"
+        id="locateMeBtn"
+        onclick="locateMe()"
+        title="Posisi Saya"
+      >
+        <i class="fa-solid fa-location-crosshairs"></i>
+      </button>
+      <button
+        class="topbar-icon topbar-remove-loc-btn"
+        id="removeLocationBtn"
+        onclick="removeUserLocation()"
+        title="Hapus Posisi"
+        style="display:none;"
+      >
+        <i class="fa-solid fa-location-xmark"></i>
+      </button>
+      <button class="topbar-icon" onclick="resetMap()" title="Kembalikan Tampilan">
+        <i class="fa-solid fa-house"></i>
+      </button>
+      <button class="topbar-icon" onclick="printMap()" title="Cetak">
+        <i class="fa-solid fa-print"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <button class="mobile-sheet-header" aria-controls="sidebarContent" aria-expanded="true" type="button" onclick="toggleSidebar()">
+      <span id="mobileSheetAction">Sembunyikan</span>
+      <strong id="mobileSheetTitle">Lokasi</strong>
+      <i class="fa-solid fa-chevron-down" id="mobileSheetIcon"></i>
+    </button>
+
+    <div class="search-section">
+      <div class="search-box">
+        <input
+          type="text"
+          id="searchInput"
+          aria-label="Cari nama gedung" aria-controls="searchSuggestions" aria-expanded="false"
+          placeholder="Cari nama gedung..."
+          autocomplete="off"
+        >
+        <button onclick="searchBuilding()" aria-label="Cari gedung">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+      </div>
+      <div id="searchSuggestions" class="search-suggestions"></div>
+      <div id="searchMessage" role="status" class="search-message" style="display:none;"></div>
+    </div>
+
+    <div class="sidebar-tabs">
+      <button class="active" data-tab="locations" onclick="showTab('locations')">Lokasi</button>
+      <button data-tab="layers" onclick="showTab('layers')">Layer</button>
+      <button data-tab="info" onclick="showTab('info')">Info</button>
+    </div>
+
+    <div class="sidebar-content" id="sidebarContent">
+      <!-- Konten sidebar akan diisi dari JavaScript -->
+    </div>
+
+    <div class="sidebar-footer">
+      <strong>Universitas Pendidikan Indonesia</strong>
+      Jl. Dr. Setiabudi No. 229<br>
+      Bandung, Jawa Barat
+    </div>
+  </aside>
+
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Buka atau tutup panel lokasi" aria-controls="sidebar" aria-expanded="true" onclick="toggleSidebar()">
+    <i class="fa-solid fa-chevron-left" id="toggleIcon"></i>
+  </button>
+
+  <!-- MAP -->
+  <div id="map" role="region" aria-label="Peta interaktif kampus UPI"></div>
+
+  <!-- LEGEND CONTROL -->
+  <div class="map-legend" id="mapLegend">
+    <button class="map-legend-toggle" aria-controls="mapLegendPanel" aria-expanded="false" onclick="toggleLegend()" title="Tampilkan/sembunyikan legenda">
+      <i class="fa-solid fa-list-ul"></i>
+      <span class="map-legend-toggle-text">Legenda</span>
+    </button>
+    <div class="map-legend-panel" id="mapLegendPanel">
+      <div class="map-legend-header">
+        <strong>Legenda Kategori</strong>
+        <button class="map-legend-close" onclick="toggleLegend()" title="Tutup">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="map-legend-items" id="mapLegendItems"></div>
+    </div>
+  </div>
+
+  <!-- LOADING OVERLAY -->
+  <div class="map-loading-overlay" id="mapLoadingOverlay">
+    <div class="map-loading-card">
+      <div class="map-loading-spinner"></div>
+      <div class="map-loading-text">Memuat data kampus...</div>
+    </div>
+  </div>
+
+  <!-- ERROR OVERLAY -->
+  <div class="map-error-overlay" id="mapErrorOverlay" style="display:none;">
+    <div class="map-error-card">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div class="map-error-title">Gagal memuat data gedung</div>
+      <div class="map-error-text" id="mapErrorText">Periksa koneksi internet Anda lalu coba lagi.</div>
+      <button class="map-error-retry" onclick="retryLoadBuildings()">
+        <i class="fa-solid fa-rotate-right"></i> Coba Lagi
+      </button>
+    </div>
+  </div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Leaflet.markercluster JS -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+  <script src="tests/browser-preload.js"></script>
+  <script defer src="assets/js/bootstrap.js"></script>
+  <script type="module" src="tests/browser-regression.js"></script>
+
+</body>
+</html>

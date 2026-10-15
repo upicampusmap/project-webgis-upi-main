@@ -5,15 +5,20 @@
 // Handler onclick pada HTML yang dihasilkan diselesaikan lewat window.*
 // (di-wire di main.js), sehingga modul ini tidak perlu meng-import-nya.
 // =====================================================
-import { map } from "./mapCore.js";
-import { activeFilters, categoryPanelState, categoryVisibility } from "./state.js";
+import { map, upiCampusTile } from "./mapCore.js";
+import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js";
 import {
   categoryIconStyles, getGroupedBuildings, getVisibleCategoryKeys, getCategoryIconHtml
 } from "./categories.js";
-import { renderParkingGroupHtml, renderParkingLayerControls } from "./parking.js";
+import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js";
+import { renderBuildingDetail } from "./buildingDetail.js";
+import { syncCategoryLayerInputs } from "./markerVisibility.js";
+import { escapeHtml } from "./utils.js";
+import { updateMobileSheetTitle } from "./layout.js";
 
 export function renderLocations() {
   const container = document.getElementById("sidebarContent");
+  sidebarState.building = null;
   const grouped = getGroupedBuildings();
   const visibleKeys = getVisibleCategoryKeys();
 
@@ -23,8 +28,8 @@ export function renderLocations() {
     <i class="fa-solid fa-border-all"></i> Semua
   </button>`;
   visibleKeys.forEach(function(key) {
-    var cfg = categoryIconStyles[key];
-    var isActive = activeFilters.has(key);
+    let cfg = categoryIconStyles[key];
+    let isActive = activeFilters.has(key);
     filterHtml += `<button
       class="filter-chip ${isActive ? "filter-chip-active" : ""}"
       style="${isActive ? "--chip-color:" + cfg.color : ""}"
@@ -60,7 +65,7 @@ export function renderLocations() {
         <div class="category-group-header">
           <button class="category-group-main" onclick="toggleCategoryGroup('${categoryKey}')">
             <span class="category-group-title">
-              ${getCategoryIconHtml(categoryConfig.label, categoryConfig.label, "category-sidebar-icon")}
+              <span class="category-sidebar-icon" style="--marker-color:${categoryConfig.color}"><i class="fa-solid ${categoryConfig.icon}"></i></span>
               <span>${categoryConfig.label}</span>
               <span class="category-group-count">${groupBuildings.length}</span>
             </span>
@@ -82,16 +87,16 @@ export function renderLocations() {
 
     groupBuildings.forEach(function(building) {
       html += `
-        <div class="building-item" onclick="openBuildingDetail('${building.name.replace(/'/g, "\\'")}')">
+        <button type="button" class="building-item" data-building-name="${escapeHtml(building.name)}">
           <div class="building-label">
             ${getCategoryIconHtml(building.category, building.name, "category-sidebar-icon")}
             <div>
-              <div>${building.name}</div>
-              <div class="building-category">${building.category}</div>
+              <div>${escapeHtml(building.name)}</div>
+              <div class="building-category">${escapeHtml(building.category)}</div>
             </div>
           </div>
           <i class="fa-solid fa-chevron-right"></i>
-        </div>
+        </button>
       `;
     });
 
@@ -127,7 +132,7 @@ function renderCategoryLayerControls() {
               ${checked}
               onchange="toggleCategoryMarkers('${categoryKey}', this)"
             >
-            ${getCategoryIconHtml(categoryConfig.label, categoryConfig.label, "category-sidebar-icon")}
+            <span class="category-sidebar-icon" style="--marker-color:${categoryConfig.color}"><i class="fa-solid ${categoryConfig.icon}"></i></span>
             <span>${categoryConfig.label}</span>
           </label>
           <span class="category-filter-count">${groupBuildings.length}</span>
@@ -147,7 +152,7 @@ export function renderLayers() {
 
     <div class="layer-item">
       <label class="layer-label">
-        <input type="checkbox" checked onchange="toggleCampusTile(this)">
+        <input type="checkbox" id="campusTileToggle" ${map.hasLayer(upiCampusTile) ? "checked" : ""} onchange="toggleCampusTile(this)">
         <i class="fa-solid fa-map"></i>
         Peta Kampus UPI
       </label>
@@ -174,13 +179,15 @@ export function renderLayers() {
           min="0"
           max="1"
           step="0.05"
-          value="0.95"
+          value="${upiCampusTile.options.opacity}"
           style="width: 100%; margin-top: 8px;"
           oninput="setCampusOpacity(this.value)"
         >
       </div>
     </div>
   `;
+  syncCategoryLayerInputs();
+  syncParkingLayerInputs();
 }
 
 export function renderInfo() {
@@ -212,23 +219,18 @@ export function renderInfo() {
 }
 
 export function renderActiveSidebarTab() {
-  const activeButton = document.querySelector(".sidebar-tabs button.active");
-  const activeLabel = activeButton ? activeButton.textContent.trim() : "Lokasi";
-
-  if (activeLabel === "Layer") {
-    renderLayers();
-  } else if (activeLabel === "Info") {
-    renderInfo();
-  } else {
-    renderLocations();
-  }
+  if (sidebarState.tab === "layers") renderLayers();
+  else if (sidebarState.tab === "info") renderInfo();
+  else if (sidebarState.building && buildingsByName.has(sidebarState.building)) {
+    renderBuildingDetail(buildingsByName.get(sidebarState.building));
+  } else renderLocations();
 }
 
 export function renderSidebarSkeleton() {
-  var container = document.getElementById("sidebarContent");
+  let container = document.getElementById("sidebarContent");
   if (!container) return;
-  var rows = "";
-  for (var i = 0; i < 6; i++) {
+  let rows = "";
+  for (let i = 0; i < 6; i++) {
     rows += `
       <div class="skeleton-row">
         <div class="skeleton-circle"></div>
@@ -241,79 +243,13 @@ export function renderSidebarSkeleton() {
   container.innerHTML = `<div class="skeleton-wrap">${rows}</div>`;
 }
 
-export function showTab(tabName, button) {
-  const buttons = document.querySelectorAll(".sidebar-tabs button");
-
-  buttons.forEach(function(btn) {
-    btn.classList.remove("active");
+export function showTab(tabName) {
+  if (!["locations", "layers", "info"].includes(tabName)) return;
+  sidebarState.tab = tabName;
+  sidebarState.building = null;
+  document.querySelectorAll(".sidebar-tabs button").forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === tabName);
+    if (button.dataset.tab === tabName) updateMobileSheetTitle(button.textContent.trim());
   });
-
-  button.classList.add("active");
-  updateMobileSheetTitle(button.textContent.trim());
-
-  if (tabName === "locations") {
-    renderLocations();
-  } else if (tabName === "layers") {
-    renderLayers();
-  } else if (tabName === "info") {
-    renderInfo();
-  }
-}
-
-export function isMobileLayout() {
-  return window.matchMedia("(max-width: 700px)").matches;
-}
-
-export function updateMobileSheetTitle(title) {
-  const sheetTitle = document.getElementById("mobileSheetTitle");
-
-  if (sheetTitle && title) {
-    sheetTitle.textContent = title;
-  }
-}
-
-export function updateSidebarChrome() {
-  const sidebar = document.getElementById("sidebar");
-  const desktopIcon = document.getElementById("toggleIcon");
-  const sheetAction = document.getElementById("mobileSheetAction");
-  const sheetIcon = document.getElementById("mobileSheetIcon");
-  const isClosed = sidebar.classList.contains("closed");
-
-  if (desktopIcon) {
-    if (isMobileLayout()) {
-      desktopIcon.className = isClosed ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down";
-    } else {
-      desktopIcon.className = isClosed ? "fa-solid fa-chevron-right" : "fa-solid fa-chevron-left";
-    }
-  }
-
-  if (sheetAction) {
-    sheetAction.textContent = isClosed ? "Tampilkan" : "Sembunyikan";
-  }
-
-  if (sheetIcon) {
-    sheetIcon.className = isClosed ? "fa-solid fa-chevron-up" : "fa-solid fa-chevron-down";
-  }
-}
-
-export function toggleSidebar() {
-  const sidebar = document.getElementById("sidebar");
-
-  sidebar.classList.toggle("closed");
-  updateSidebarChrome();
-
-  setTimeout(function() {
-    map.invalidateSize();
-  }, 300);
-}
-
-export function closeSidebar() {
-  const sidebar = document.getElementById("sidebar");
-
-  sidebar.classList.add("closed");
-  updateSidebarChrome();
-
-  setTimeout(function() {
-    map.invalidateSize();
-  }, 300);
+  renderActiveSidebarTab();
 }

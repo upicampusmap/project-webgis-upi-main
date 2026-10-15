@@ -1,89 +1,89 @@
-# WebGIS Kampus UPI
+# WebGIS Fasilitas Kampus Bumi Siliwangi UPI
 
-Peta kampus interaktif Universitas Pendidikan Indonesia (UPI) berbasis **Leaflet.js**.
-Menampilkan gedung, fasilitas, parkir, jalur evakuasi, dan jalur pejalan kaki di atas
-peta kampus hasil *georeferencing* (tile XYZ lokal).
+Situs statis berbasis Leaflet 1.9.4 dan Leaflet.markercluster 1.5.3. Data saat ini:
+77 titik gedung/fasilitas, 46 poligon parkir mobil, dan 3 poligon parkir motor.
+Tidak memerlukan bundler, backend, atau npm untuk menjalankan situs.
 
-## Menjalankan secara lokal
+## Menjalankan
 
-> **PENTING:** Aplikasi memuat data lewat `fetch()` (GeoJSON). Jika `map.html` dibuka
-> langsung dengan klik-dua-kali (`file://`), browser **memblokir** pemuatan data dan
-> muncul pesan *"Gagal memuat data gedung / Failed to fetch"*. Jadi **harus** lewat
-> HTTP server (localhost).
+Windows: dobel-klik `start-server.bat`. Server membuka peta di localhost; biarkan
+jendelanya tetap terbuka. Alternatif: `python -m http.server 8000` dari root proyek.
+Buka `/index.html` atau `/map.html` melalui HTTP, bukan `file://`.
 
-### Cara termudah (Windows, tanpa install apa pun)
+Preview tanpa membuka browser otomatis:
 
-**Dobel-klik `start-server.bat`.** Skrip ini menjalankan server lokal (memakai PowerShell
-bawaan Windows) lalu membuka peta otomatis di browser. Biarkan jendela hitamnya terbuka
-selama memakai peta; tutup jendela untuk menghentikan server.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File serve.ps1 -PreferredPort 8000 -NoBrowser
+```
 
-### Alternatif
+Leaflet, markercluster, Font Awesome, dan font masih menggunakan CDN. Koneksi
+internet diperlukan untuk dependensi dan basemap; pesan error tersedia jika CDN gagal.
+
+## Struktur dan tanggung jawab
+
+- `index.html`, `assets/js/landing.js`, `assets/css/landing.css`: beranda dan menu mobile.
+- `map.html`, `assets/js/bootstrap.js`: struktur halaman, penanganan kegagalan startup.
+- `assets/js/map/main.js`: inisialisasi paralel dan penghubung event UI.
+- `mapCore.js`, `config.js`: instance Leaflet, bounds, renderer SVG, cluster dan basemap.
+- `geojson.js`: validasi WGS84, normalisasi properti, fetch dengan timeout.
+- `buildingsData.js`: pemuatan atomik dan indeks gedung/marker, retry tanpa duplikasi.
+- `categories.js`, `markerVisibility.js`: taksonomi ikon, cache kelompok dan visibilitas batch.
+- `parking.js`: dua layer GeoJSON berdasarkan jenis; satu path SVG per poligon,
+  pola arsir, popup lazy, status gagal per jenis dan retry parsial.
+- `sidebar.js`, `layout.js`, `buildingDetail.js`, `search.js`: render panel, layout responsif,
+  detail dan pencarian dengan keyboard. Teks data tidak dijadikan kode onclick.
+- `state.js`, `uiEvents.js`, `utils.js`: state, event refresh UI dan helper umum.
+- `legend.js`, `geolocation.js`, `mapControls.js`: legenda, GPS, kontrol tampilan.
+- `photos.js`, `images/optimized/`: manifest foto WebP untuk runtime. Foto asli tetap di `images/`.
+- `data/`: GeoJSON runtime; `tiles/upi/{z}/{x}/{y}.png`: tile XYZ kampus.
+- `tests/`: pengujian data/aset dan harness browser; tidak dimuat halaman produksi.
+- `scripts/optimize-images.py`: tool opsional pengelola foto (Python + Pillow).
+- `docs/AUDIT.md`: temuan, perbaikan, hasil verifikasi dan keterbatasan data.
+
+Seluruh jalur runtime relatif terhadap halaman situs sehingga tetap bekerja ketika
+GitHub Pages memakai subdirektori `/project-webgis-upi-main/`.
+
+## Memperbarui data
+
+GeoJSON menggunakan WGS84 `[longitude, latitude]`. Gedung harus berupa Point;
+parkir Polygon atau MultiPolygon dengan ring tertutup. Fitur individual yang tidak
+valid dilewati dengan pesan console; koleksi kosong/tidak valid menampilkan error.
+Jangan mengubah koordinat ke sistem proyeksi QGIS tanpa mengekspornya kembali ke WGS84.
+
+Properti gedung: `name`, `category`, `description`, `image`, `hours`, `floors`, `phone`,
+`facilities` (array string), `LinkWeb` atau `linkWeb` (HTTP/HTTPS). Properti lama
+`Nama`, `Kategori`, `Deskripsi`, `Gambar` masih diterima. Nama gedung pada dataset
+saat ini unik dan digunakan untuk pencarian serta deep link `?building=...`.
+
+Tambahkan foto asli di `images/`, lalu jalankan `python scripts/optimize-images.py`
+untuk memperbarui WebP dan manifest. Ini opsional; foto baru yang belum ada dalam
+manifest tetap dimuat melalui jalur aslinya. Foto yang hilang menampilkan inisial.
+File sumber QGIS disimpan lokal dalam `data-source/` yang diabaikan Git.
+
+## Verifikasi
+
+Node.js 20+ hanya diperlukan untuk pengujian, tanpa instalasi package:
 
 ```bash
-npx serve .                 # jika punya Node.js
-python -m http.server 8000  # jika punya Python asli
+npm test
 ```
 
-Atau di VS Code: klik kanan `index.html` → **Open with Live Server**.
+Untuk menguji integrasi Leaflet asli, jalankan server lalu buka:
 
-Lalu buka `http://localhost:<port>/` (beranda) atau `.../map.html` (peta).
+- `/tests/browser.html`: alur normal.
+- `/tests/browser.html?parking-failure=1`: kegagalan awal data motor, lalu retry.
 
-## Struktur folder
+Harness menampilkan PASS/FAIL dan hanya memodifikasi state halaman pengujian.
+Untuk pengujian layout, buka peta pada lebar desktop dan mobile, cari gedung,
+ubah filter/layer, buka detail, dan tutup/buka panel. GPS nyata tetap bergantung
+izin dan perangkat pengguna; pengujian otomatis mensimulasikan GPS di luar kampus.
 
-```
-.
-├── index.html              # Landing page
-├── map.html                # Halaman WebGIS (struktur DOM)
-├── assets/
-│   ├── css/
-│   │   ├── landing.css      # Style landing page
-│   │   └── map.css          # Style halaman peta
-│   └── js/
-│       ├── landing.js       # Toggle menu mobile (landing)
-│       └── map.js           # Seluruh logika peta (Leaflet, marker, sidebar, dst.)
-├── data/                   # Data GeoJSON runtime (di-fetch aplikasi)
-│   ├── gedung-upi-point.geojson
-│   ├── parkiran-mobil.geojson
-│   └── parkiran-motor.geojson
-├── images/                 # Aset gambar UI (logo, banner, dsb.)
-├── tiles/upi/{z}/{x}/{y}.png   # Tile peta kampus hasil georeferencing
-├── data-source/            # Artifact QGIS mentah (TIDAK di-serve, di-gitignore)
-│   ├── raster/             #   raster .tif sumber
-│   ├── qmd/                #   sidecar style QGIS (.qmd)
-│   └── shapefile/          #   shapefile WIP (under-construction.*)
-└── docs/
-    └── ROADMAP.md
-```
+## GitHub Pages
 
-> **Catatan:** Karena ini situs statis tanpa bundler, root repo = web root. Aset yang
-> di-*serve* (`images/`, `tiles/`, `data/`) sengaja berada di root agar URL-nya stabil.
+Publikasikan root repository dari branch yang dipilih di Settings → Pages.
+Tidak ada langkah build npm. Unggah `images/optimized/`, kedua WebP beranda, dan
+seluruh modul baru bersama HTML/CSS yang diperbarui. Jangan mengunggah hanya satu
+file JavaScript karena modul saling mengimpor. Data dan tile yang ada tetap dipakai.
 
-## Dependency (via CDN)
-
-- [Leaflet](https://leafletjs.com/) 1.9.4
-- [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster) 1.5.3
-- [Font Awesome](https://fontawesome.com/) 6.6.0
-- Google Fonts (Oswald)
-
-Semua dimuat dari CDN, jadi butuh koneksi internet saat pertama kali render.
-
-## Data
-
-- **`data/`** — dipakai aplikasi saat runtime. Format GeoJSON (WGS84, `[lng, lat]`).
-- **`data-source/`** — bahan mentah dari QGIS (raster, style, shapefile). Tidak dipakai
-  browser; disimpan untuk reproduksi proses pemetaan. Folder ini di-*ignore* git.
-
-### Meng-untrack `data-source/` yang sudah ter-commit (opsional)
-
-Jika artifact QGIS sebelumnya sudah masuk ke git, hapus dari pelacakan tanpa menghapus
-file lokal:
-
-```bash
-git rm -r --cached data-source/
-git commit -m "chore: stop tracking QGIS source artifacts"
-```
-
-## Deploy
-
-Cukup host folder ini sebagai situs statis (GitHub Pages, Netlify, Vercel, atau server
-apa pun). Tidak ada langkah build.
+Refactoring 15 Oktober 2026 disiapkan lokal di branch `refactor/webgis-audit`;
+push dan deployment belum dilakukan.

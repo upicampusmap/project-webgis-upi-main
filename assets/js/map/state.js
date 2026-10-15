@@ -1,12 +1,16 @@
 // =====================================================
 // state.js — State runtime bersama antar-modul
 // Tanggung jawab: menyimpan state aplikasi yang dipakai lintas fitur.
-// Semua array/objek/Set di sini dimutasi IN-PLACE (tidak di-reassign)
-// agar binding ES Module tetap valid di seluruh importer.
+// Containers have stable identities; data reloads update their contents in place.
 // =====================================================
 export const buildings = [];
 export const buildingMarkers = [];
+export const buildingsByName = new Map();
+export const markersByName = new Map();
+export const groupedBuildings = new Map();
 export const parkingItems = [];
+export const parkingLoadState = { car: "idle", motor: "idle" };
+export const sidebarState = { tab: "locations", building: null };
 
 export const parkingVisibility = {
   car: true,

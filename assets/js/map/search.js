@@ -1,65 +1,78 @@
-// =====================================================
-// search.js — Pencarian gedung + autocomplete
-// Tanggung jawab: input pencarian, dropdown saran, pesan hasil,
-// dan mengarahkan ke gedung terpilih.
-// =====================================================
-import { buildings, buildingMarkers } from "./state.js";
+import { buildings } from "./state.js";
 import { getIconConfigByCategory } from "./categories.js";
-import { focusBuildingByName, openBuildingDetail } from "./buildingDetail.js";
+import { openBuildingDetail } from "./buildingDetail.js";
+import { escapeHtml } from "./utils.js";
+
+let initialized = false;
+let messageTimer;
 
 export function hideSuggestions() {
-  var el = document.getElementById("searchSuggestions");
-  if (el) { el.innerHTML = ""; el.style.display = "none"; }
+  const element = document.getElementById("searchSuggestions");
+  if (element) { element.replaceChildren(); element.style.display = "none"; }
+  document.getElementById("searchInput")?.setAttribute("aria-expanded", "false");
 }
 
 export function showSearchMessage(text, type) {
-  var msg = document.getElementById("searchMessage");
-  if (!msg) return;
-  msg.textContent = text;
-  msg.className = "search-message search-message-" + type;
-  msg.style.display = "block";
-  clearTimeout(msg._hideTimer);
-  msg._hideTimer = setTimeout(function() { msg.style.display = "none"; }, 4000);
+  const message = document.getElementById("searchMessage");
+  if (!message) return;
+  clearTimeout(messageTimer);
+  message.textContent = text;
+  message.className = `search-message search-message-${type}`;
+  message.style.display = "block";
+  messageTimer = setTimeout(hideSearchMessage, 4000);
 }
 
 export function hideSearchMessage() {
-  var msg = document.getElementById("searchMessage");
-  if (msg) msg.style.display = "none";
+  clearTimeout(messageTimer);
+  const element = document.getElementById("searchMessage");
+  if (element) element.style.display = "none";
 }
 
 export function initSearchAutocomplete() {
-  var input = document.getElementById("searchInput");
-  var suggestions = document.getElementById("searchSuggestions");
+  if (initialized) return;
+  const input = document.getElementById("searchInput");
+  const suggestions = document.getElementById("searchSuggestions");
   if (!input || !suggestions) return;
-
-  input.addEventListener("input", function() {
-    var keyword = this.value.toLowerCase().trim();
-    if (!keyword || keyword.length < 2) { hideSuggestions(); return; }
-
-    var matches = buildings.filter(function(b) {
-      return b.name.toLowerCase().includes(keyword);
-    }).slice(0, 7);
-
+  initialized = true;
+  input.addEventListener("input", () => {
+    hideSearchMessage();
+    const keyword = input.value.toLocaleLowerCase("id").trim();
+    if (keyword.length < 2) { hideSuggestions(); return; }
+    const matches = buildings.filter((building) => building.searchName.includes(keyword)).slice(0, 7);
     if (!matches.length) { hideSuggestions(); return; }
-
-    suggestions.innerHTML = matches.map(function(b) {
-      var iconConfig = getIconConfigByCategory(b.category, b.name);
-      var safeName = b.name.replace(/'/g, "\\'");
-      return `<div class="search-suggestion-item" onclick="selectSuggestion('${safeName}')">
-        <span class="suggestion-icon" style="background:${iconConfig.color}">
-          <i class="fa-solid ${iconConfig.icon}"></i>
-        </span>
-        <div class="suggestion-text">
-          <div class="suggestion-name">${b.name}</div>
-          <div class="suggestion-cat">${b.category}</div>
-        </div>
-      </div>`;
+    suggestions.innerHTML = matches.map((building) => {
+      const icon = getIconConfigByCategory(building.category, building.name);
+      return `<button type="button" class="search-suggestion-item" data-building-name="${escapeHtml(building.name)}">
+        <span class="suggestion-icon" style="background:${icon.color}"><i class="fa-solid ${icon.icon}"></i></span>
+        <span class="suggestion-text"><span class="suggestion-name">${escapeHtml(building.name)}</span>
+          <span class="suggestion-cat">${escapeHtml(building.category)}</span></span>
+      </button>`;
     }).join("");
     suggestions.style.display = "block";
+    input.setAttribute("aria-expanded", "true");
   });
-
-  document.addEventListener("click", function(e) {
-    if (!e.target.closest(".search-section")) hideSuggestions();
+  suggestions.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-building-name]");
+    if (button) selectSuggestion(button.dataset.buildingName);
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); searchBuilding(); }
+    if (event.key === "Escape") hideSuggestions();
+    if (event.key === "ArrowDown") { event.preventDefault(); suggestions.querySelector("button")?.focus(); }
+  });
+  suggestions.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") { hideSuggestions(); input.focus(); }
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const sibling = event.key === "ArrowDown" ? event.target.nextElementSibling : event.target.previousElementSibling;
+      (sibling || input).focus();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (!event.target.closest(".search-section")) hideSuggestions();
+  });
+  document.querySelector(".search-section")?.addEventListener("focusout", (event) => {
+    if (!event.currentTarget.contains(event.relatedTarget)) hideSuggestions();
   });
 }
 
@@ -67,26 +80,15 @@ export function selectSuggestion(name) {
   document.getElementById("searchInput").value = name;
   hideSuggestions();
   hideSearchMessage();
-  focusBuildingByName(name);
+  openBuildingDetail(name);
 }
 
 export function searchBuilding() {
-  var keyword = document.getElementById("searchInput").value.toLowerCase().trim();
+  const keyword = document.getElementById("searchInput").value.toLocaleLowerCase("id").trim();
   hideSuggestions();
-
-  if (!keyword) {
-    showSearchMessage("Masukkan nama gedung terlebih dahulu.", "warning");
-    return;
-  }
-
-  var result = buildingMarkers.find(function(marker) {
-    return marker.buildingData.name.toLowerCase().includes(keyword);
-  });
-
-  if (result) {
-    hideSearchMessage();
-    openBuildingDetail(result.buildingData.name);
-  } else {
-    showSearchMessage("Gedung tidak ditemukan. Coba kata kunci lain.", "error");
-  }
+  if (!keyword) { showSearchMessage("Masukkan nama gedung terlebih dahulu.", "warning"); return; }
+  const result = buildings.find((building) => building.searchName === keyword) ||
+    buildings.find((building) => building.searchName.includes(keyword));
+  if (result) { hideSearchMessage(); openBuildingDetail(result.name); }
+  else showSearchMessage("Gedung tidak ditemukan. Coba kata kunci lain.", "error");
 }

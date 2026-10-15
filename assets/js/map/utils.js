@@ -4,14 +4,29 @@
 // terikat domain tertentu.
 // =====================================================
 
+export function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  })[character]);
+}
+
+export function safeWebUrl(value) {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value);
+    return ["https:", "http:"].includes(url.protocol) && !url.username && !url.password ? url.href : "";
+  } catch { return ""; }
+}
+
 export function getInitials(name) {
   return (name || "?").split(" ").slice(0, 2).map(function(w) {
     return w[0] || "";
   }).join("").toUpperCase() || "?";
 }
 
+let toastTimer;
 export function showToast(msg) {
-  var toast = document.getElementById("toastMsg");
+  let toast = document.getElementById("toastMsg");
   if (!toast) {
     toast = document.createElement("div");
     toast.id = "toastMsg";
@@ -20,5 +35,7 @@ export function showToast(msg) {
   }
   toast.textContent = msg;
   toast.classList.add("toast-show");
-  setTimeout(function() { toast.classList.remove("toast-show"); }, 3000);
+  clearTimeout(toastTimer);
+  toast.setAttribute("role", "status");
+  toastTimer = setTimeout(function() { toast.classList.remove("toast-show"); }, 3000);
 }

@@ -3,7 +3,7 @@
 // Tanggung jawab: konfigurasi kategori + memetakan gedung ke
 // kategori/ikon, serta mengelompokkan gedung per kategori.
 // =====================================================
-import { buildings } from "./state.js";
+import { buildings, groupedBuildings } from "./state.js";
 
 export const categoryIconStyles = {
   academic: {
@@ -88,7 +88,7 @@ export const categoryDisplayOrder = [
   "banking"
 ];
 
-export function normalizeCategoryText(category, name) {
+function normalizeCategoryText(category, name) {
   return `${category || ""} ${name || ""}`.toLowerCase();
 }
 
@@ -96,7 +96,7 @@ export function getIconConfigByCategory(category, name) {
   const text = normalizeCategoryText(category, name);
   const categoryText = `${category || ""}`.toLowerCase();
 
-  if (text.includes("sanitasi") || text.includes("toilet") || text.includes("wc") || text.includes("restroom")) {
+  if (text.includes("sanitasi") || text.includes("toilet") || /\bwc\b/.test(text) || text.includes("restroom")) {
     return categoryIconStyles.sanitasi;
   }
 
@@ -112,10 +112,6 @@ export function getIconConfigByCategory(category, name) {
     return categoryIconStyles.services;
   }
 
-  if (categoryText.includes("olahraga")) {
-    return categoryIconStyles.athletics;
-  }
-
   if (text.includes("labschool") || text.includes("laboratorium school") || text.includes("school") || text.includes("sd lab") || text.includes("smp lab") || text.includes("sma lab") || text.includes("tk lab")) {
     return categoryIconStyles.labschool;
   }
@@ -124,7 +120,7 @@ export function getIconConfigByCategory(category, name) {
     return categoryIconStyles.housing;
   }
 
-  if (categoryText.includes("pendidikan")) {
+  if (["pendidikan", "administrasi", "lembaga", "landmark"].some((term) => categoryText.includes(term))) {
     return categoryIconStyles.academic;
   }
 
@@ -132,7 +128,7 @@ export function getIconConfigByCategory(category, name) {
     return categoryIconStyles.health;
   }
 
-  if (text.includes("kuliner") || text.includes("kantin") || text.includes("culinary")) {
+  if (text.includes("kuliner") || text.includes("kantin") || text.includes("culinary") || text.includes("coffee")) {
     return categoryIconStyles.culinary;
   }
 
@@ -159,7 +155,7 @@ export function getIconConfigByCategory(category, name) {
     return categoryIconStyles.facilities;
   }
 
-  return categoryIconStyles.academic;
+  return categoryIconStyles.facilities;
 }
 
 export function getCategoryIconHtml(category, name, className) {
@@ -176,63 +172,38 @@ export function getCategoryIconHtml(category, name, className) {
   `;
 }
 
+const markerIcons = new Map();
+
 export function getIconByCategory(category, name) {
-  return L.divIcon({
-    html: getCategoryIconHtml(category, name, "category-marker-inner"),
-    className: "category-marker",
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
-    popupAnchor: [0, -12]
-  });
+  const config = getIconConfigByCategory(category, name);
+  if (!markerIcons.has(config.key)) {
+    markerIcons.set(config.key, L.divIcon({
+      html: getCategoryIconHtml(category, name, "category-marker-inner"),
+      className: "category-marker",
+      iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -12]
+    }));
+  }
+  return markerIcons.get(config.key);
 }
 
 export function getCategoryKeyByBuilding(building) {
-  const text = normalizeCategoryText(building.category, building.name);
-
-  if (text.includes("sanitasi") || text.includes("toilet") || text.includes("wc")) {
-    return "sanitasi";
-  }
-
-  if (text.includes("labschool") || text.includes("laboratorium school") ||
-      text.includes("sd lab") || text.includes("smp lab") || text.includes("sma lab") || text.includes("tk lab")) {
-    return "labschool";
-  }
-
-  if (text.includes("perbankan") || /\b(atm|bni|bri|mandiri)\b/.test(text)) {
-    return "banking";
-  }
-
-  if (text.includes("fotokopi") || text.includes("print") || `${building.category || ""}`.toLowerCase() === "layanan") {
-    return "services";
-  }
-
   return getIconConfigByCategory(building.category, building.name).key;
 }
 
+// Rebuild only when data changes, not on every sidebar render/toggle.
+export function rebuildCategoryGroups() {
+  groupedBuildings.clear();
+  for (const key of categoryDisplayOrder) groupedBuildings.set(key, []);
+  for (const building of buildings) {
+    const key = getCategoryKeyByBuilding(building);
+    groupedBuildings.get(key).push(building);
+  }
+}
+
 export function getGroupedBuildings() {
-  const grouped = {};
-
-  categoryDisplayOrder.forEach(function(categoryKey) {
-    grouped[categoryKey] = [];
-  });
-
-  buildings.forEach(function(building) {
-    const categoryKey = getCategoryKeyByBuilding(building);
-
-    if (!grouped[categoryKey]) {
-      grouped[categoryKey] = [];
-    }
-
-    grouped[categoryKey].push(building);
-  });
-
-  return grouped;
+  return Object.fromEntries(groupedBuildings);
 }
 
 export function getVisibleCategoryKeys() {
-  const grouped = getGroupedBuildings();
-
-  return categoryDisplayOrder.filter(function(categoryKey) {
-    return grouped[categoryKey] && grouped[categoryKey].length > 0;
-  });
+  return categoryDisplayOrder.filter((key) => groupedBuildings.get(key)?.length > 0);
 }

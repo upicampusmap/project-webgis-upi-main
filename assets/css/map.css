@@ -15,6 +15,7 @@ body {
 #map {
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   z-index: 1;
 }
 
@@ -115,6 +116,7 @@ body {
   left: 0;
   width: 360px;
   height: calc(100vh - 58px);
+  height: calc(100dvh - 58px);
   background: white;
   z-index: 999;
   box-shadow: 2px 0 10px rgba(0,0,0,0.25);
@@ -205,7 +207,9 @@ body {
 
 .sidebar-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .layer-group-title {
@@ -696,7 +700,9 @@ body {
   z-index: 9999;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
-  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+  white-space: normal;
+  overflow-wrap: anywhere;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   pointer-events: none;
 }
@@ -916,6 +922,7 @@ body {
     bottom: 0;
     width: 100%;
     height: min(56vh, 520px);
+    height: min(56dvh, 520px);
     border-radius: 16px 16px 0 0;
     box-shadow: 0 -5px 18px rgba(0,0,0,0.28);
     transform: translateY(0);
@@ -1336,4 +1343,51 @@ body {
 }
 .upi-cluster .cluster-inner span {
   text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+
+/* Interactive rows are real buttons: retain the established layout. */
+button.building-item, button.search-suggestion-item {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  color: inherit;
+  font-size: inherit;
+  border: 0;
+  border-bottom: 1px solid #e5e5e5;
+}
+button.building-item:hover, button.search-suggestion-item:hover { background: #f3f3f3; }
+button:focus-visible, a:focus-visible, input:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: -3px;
+}
+.suggestion-name, .suggestion-cat { display: block; }
+.building-label { min-width: 0; }
+.building-label > div { overflow-wrap: anywhere; }
+.data-status { padding: 14px 16px; font-size: 13px; color: #475569; }
+.data-status button { margin-left: 8px; padding: 5px 8px; cursor: pointer; }
+.topbar-left { min-width: 0; }
+.topbar-left h1 { min-width: 0; }
+.topbar-right { flex-shrink: 0; }
+@media (max-width: 400px) {
+  .topbar { padding-inline: 8px; }
+  .topbar-left { gap: 6px; }
+  .topbar-left img { width: 42px; }
+  .topbar-left h1 { max-width: 95px; font-size: 13px; }
+  .topbar-right { gap: 4px; }
+  .topbar-icon { width: 30px; height: 32px; }
+}
+@media print {
+  .topbar, .sidebar, .sidebar-toggle, .map-legend,
+  .leaflet-control-zoom, .leaflet-control-layers, .toast-notification { display: none !important; }
+  #map { position: absolute; inset: 0; width: 100%; height: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar-toggle, .marker-pulse .category-marker-inner,
+  .user-location-dot, .building-detail-panel { transition: none; animation: none; }
+}
+
+@media (max-width: 700px) {
+  .map-legend { bottom: calc(min(56vh, 520px) + 12px); bottom: calc(min(56dvh, 520px) + 12px); }
+  .sidebar.closed ~ .map-legend { bottom: 64px; }
+  .map-legend-panel { max-height: calc(44dvh - 90px); overflow-y: auto; }
 }

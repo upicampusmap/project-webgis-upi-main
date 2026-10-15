@@ -7,7 +7,7 @@
 import { buildingClusterGroup } from "./mapCore.js";
 import { buildingMarkers, categoryVisibility, categoryPanelState, activeFilters } from "./state.js";
 import { getVisibleCategoryKeys } from "./categories.js";
-import { renderLocations } from "./sidebar.js";
+import { requestSidebarRender } from "./uiEvents.js";
 
 export function toggleFilter(categoryKey) {
   if (categoryKey === "all") {
@@ -18,25 +18,29 @@ export function toggleFilter(categoryKey) {
     activeFilters.add(categoryKey);
   }
   syncMarkersToFilter();
-  renderLocations();
+  requestSidebarRender();
 }
 
 export function syncMarkersToFilter() {
+  const added = [];
+  const removed = [];
   buildingMarkers.forEach(function(marker) {
     var key = marker.categoryKey;
     var passesFilter = activeFilters.size === 0 || activeFilters.has(key);
     var categoryAllowed = categoryVisibility[key] !== false;
     if (passesFilter && categoryAllowed) {
-      if (!buildingClusterGroup.hasLayer(marker)) buildingClusterGroup.addLayer(marker);
+      if (!buildingClusterGroup.hasLayer(marker)) added.push(marker);
     } else {
-      if (buildingClusterGroup.hasLayer(marker)) buildingClusterGroup.removeLayer(marker);
+      if (buildingClusterGroup.hasLayer(marker)) removed.push(marker);
     }
   });
+  if (removed.length) buildingClusterGroup.removeLayers(removed);
+  if (added.length) buildingClusterGroup.addLayers(added);
 }
 
 export function toggleCategoryGroup(categoryKey) {
   categoryPanelState[categoryKey] = categoryPanelState[categoryKey] === false;
-  renderLocations();
+  requestSidebarRender();
 }
 
 export function setCategoryVisible(categoryKey, visible) {
@@ -58,6 +62,7 @@ export function syncCategoryLayerInputs() {
     allToggle.checked = visibleKeys.every(function(categoryKey) {
       return categoryVisibility[categoryKey] !== false;
     });
+    allToggle.indeterminate = visibleKeys.some((key) => categoryVisibility[key] !== false) && !allToggle.checked;
   }
 }
 
@@ -71,5 +76,5 @@ export function toggleCategoryVisibilityFromLocations(categoryKey) {
 
   setCategoryVisible(categoryKey, nextVisible);
   syncCategoryLayerInputs();
-  renderLocations();
+  requestSidebarRender();
 }

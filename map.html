@@ -16,16 +16,16 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
 
   <!-- Font Awesome untuk icon -->
-  <link 
-    rel="stylesheet" 
+  <link
+    rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
   >
 
   <!-- Google Font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link 
-    href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap" 
+  <link
+    href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap"
     rel="stylesheet"
   >
   <!-- CSS khusus halaman peta -->
@@ -71,7 +71,7 @@
 
   <!-- SIDEBAR -->
   <aside class="sidebar" id="sidebar">
-    <button class="mobile-sheet-header" type="button" onclick="toggleSidebar()">
+    <button class="mobile-sheet-header" aria-controls="sidebarContent" aria-expanded="true" type="button" onclick="toggleSidebar()">
       <span id="mobileSheetAction">Sembunyikan</span>
       <strong id="mobileSheetTitle">Lokasi</strong>
       <i class="fa-solid fa-chevron-down" id="mobileSheetIcon"></i>
@@ -82,21 +82,22 @@
         <input
           type="text"
           id="searchInput"
+          aria-label="Cari nama gedung" aria-controls="searchSuggestions" aria-expanded="false"
           placeholder="Cari nama gedung..."
           autocomplete="off"
         >
-        <button onclick="searchBuilding()">
+        <button onclick="searchBuilding()" aria-label="Cari gedung">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
       </div>
       <div id="searchSuggestions" class="search-suggestions"></div>
-      <div id="searchMessage" class="search-message" style="display:none;"></div>
+      <div id="searchMessage" role="status" class="search-message" style="display:none;"></div>
     </div>
 
     <div class="sidebar-tabs">
-      <button class="active" onclick="showTab('locations', this)">Lokasi</button>
-      <button onclick="showTab('layers', this)">Layer</button>
-      <button onclick="showTab('info', this)">Info</button>
+      <button class="active" data-tab="locations" onclick="showTab('locations')">Lokasi</button>
+      <button data-tab="layers" onclick="showTab('layers')">Layer</button>
+      <button data-tab="info" onclick="showTab('info')">Info</button>
     </div>
 
     <div class="sidebar-content" id="sidebarContent">
@@ -110,16 +111,16 @@
     </div>
   </aside>
 
-  <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Buka atau tutup panel lokasi" aria-controls="sidebar" aria-expanded="true" onclick="toggleSidebar()">
     <i class="fa-solid fa-chevron-left" id="toggleIcon"></i>
   </button>
 
   <!-- MAP -->
-  <div id="map"></div>
+  <div id="map" role="region" aria-label="Peta interaktif kampus UPI"></div>
 
   <!-- LEGEND CONTROL -->
   <div class="map-legend" id="mapLegend">
-    <button class="map-legend-toggle" onclick="toggleLegend()" title="Tampilkan/sembunyikan legenda">
+    <button class="map-legend-toggle" aria-controls="mapLegendPanel" aria-expanded="false" onclick="toggleLegend()" title="Tampilkan/sembunyikan legenda">
       <i class="fa-solid fa-list-ul"></i>
       <span class="map-legend-toggle-text">Legenda</span>
     </button>
@@ -160,8 +161,7 @@
   <!-- Leaflet.markercluster JS -->
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <script type="module" src="assets/js/map/main.js"></script>
+  <script defer src="assets/js/bootstrap.js"></script>
 
 </body>
 </html>
-

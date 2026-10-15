@@ -4,12 +4,13 @@
 // window (agar atribut onclick/onchange/oninput di HTML tetap jalan),
 // memasang listener global, dan menjalankan urutan inisialisasi.
 // =====================================================
-import { map } from "./mapCore.js";
+import { map, upiCampusTile, parkingLayerGroup } from "./mapCore.js";
 import { renderLegendItems, toggleLegend } from "./legend.js";
 import {
-  renderSidebarSkeleton, showTab, toggleSidebar, updateSidebarChrome
+  renderSidebarSkeleton, showTab, renderActiveSidebarTab
 } from "./sidebar.js";
-import { searchBuilding, selectSuggestion } from "./search.js";
+import { toggleSidebar, updateSidebarChrome } from "./layout.js";
+import { searchBuilding, initSearchAutocomplete } from "./search.js";
 import { locateMe, removeUserLocation } from "./geolocation.js";
 import {
   resetMap, printMap, toggleCampusTile, toggleBuildingMarkers, setCampusOpacity
@@ -18,15 +19,16 @@ import {
   toggleFilter, toggleCategoryGroup,
   toggleCategoryVisibilityFromLocations, toggleCategoryMarkers
 } from "./markerVisibility.js";
-import { openBuildingDetail, shareBuilding } from "./buildingDetail.js";
+import { sidebarState } from "./state.js";
+import { openBuildingDetail } from "./buildingDetail.js";
 import {
   loadParkingGeoJson,
   toggleParkingMainGroup, toggleParkingSubGroup,
   toggleParkingVisibilityFromLocations, toggleAllParkingVisibilityFromLocations,
-  focusParkingItem, toggleParkingLayer, toggleAllParkingLayers
+  focusParkingItem, toggleParkingLayer, toggleAllParkingLayers, syncParkingLayerInputs
 } from "./parking.js";
 import {
-  loadBuildingsGeoJson, showMapLoading, retryLoadBuildings
+  loadBuildingsGeoJson, retryLoadBuildings
 } from "./buildingsData.js";
 
 // ---------------------------------------------------------------
@@ -37,41 +39,63 @@ Object.assign(window, {
   // topbar & sidebar
   locateMe, removeUserLocation, resetMap, printMap, toggleSidebar, showTab, toggleLegend,
   // pencarian
-  searchBuilding, selectSuggestion,
+  searchBuilding,
   // data gedung
-  retryLoadBuildings, openBuildingDetail, shareBuilding,
+  retryLoadBuildings, retryLoadParking: loadParkingGeoJson,
   // filter & visibilitas kategori
   toggleFilter, toggleCategoryGroup, toggleCategoryVisibilityFromLocations, toggleCategoryMarkers,
   // kontrol peta / layer
   toggleCampusTile, toggleBuildingMarkers, setCampusOpacity,
   // parkir
   toggleParkingMainGroup, toggleParkingSubGroup, toggleParkingVisibilityFromLocations,
-  toggleAllParkingVisibilityFromLocations, focusParkingItem, toggleParkingLayer, toggleAllParkingLayers
+  toggleAllParkingVisibilityFromLocations, toggleParkingLayer, toggleAllParkingLayers
 });
 
 // ---------------------------------------------------------------
 // Orkestrasi inisialisasi
 // ---------------------------------------------------------------
+document.addEventListener("webgis:sidebar-refresh", () => {
+  renderActiveSidebarTab();
+  renderLegendItems();
+});
+
 async function initApp() {
-  showMapLoading();
   renderSidebarSkeleton();
-  await loadBuildingsGeoJson();
-  loadParkingGeoJson();
+  initSearchAutocomplete();
+  await Promise.all([loadBuildingsGeoJson(), loadParkingGeoJson()]);
 }
 
 // Legenda kategori (sekali saat load)
 renderLegendItems();
 
-// Enter pada input pencarian
-document.getElementById("searchInput").addEventListener("keyup", function(e) {
-  if (e.key === "Enter") searchBuilding();
+// One delegated handler survives sidebar rerenders; data never becomes JavaScript.
+document.getElementById("sidebarContent").addEventListener("click", (event) => {
+  const target = event.target.closest("[data-building-name], [data-parking-id], [data-back-locations]");
+  if (!target) return;
+  if (target.hasAttribute("data-building-name")) openBuildingDetail(target.dataset.buildingName);
+  else if (target.hasAttribute("data-parking-id")) focusParkingItem(target.dataset.parkingId);
+  else showTab("locations");
 });
 
-// Sesuaikan sidebar & peta saat ukuran layar berubah
-window.addEventListener("resize", function() {
-  updateSidebarChrome();
-  map.invalidateSize();
+// Keep sidebar controls consistent with Leaflet's own layer control.
+map.on("layeradd layerremove", (event) => {
+  if (event.layer === upiCampusTile) {
+    const input = document.getElementById("campusTileToggle");
+    if (input) input.checked = map.hasLayer(upiCampusTile);
+  }
+  if (event.layer === parkingLayerGroup) {
+    syncParkingLayerInputs();
+    if (sidebarState.tab === "locations" && !sidebarState.building) renderActiveSidebarTab();
+  }
 });
+
+let resizeFrame;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(updateSidebarChrome);
+});
+window.addEventListener("beforeprint", () => map.invalidateSize({ animate: false }));
+window.addEventListener("afterprint", () => map.invalidateSize({ animate: false }));
 
 updateSidebarChrome();
-initApp();
+await initApp();

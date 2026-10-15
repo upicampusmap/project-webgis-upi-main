@@ -4,8 +4,11 @@
 // merender daftar/kontrol parkir di sidebar, dan toggle visibilitasnya.
 // =====================================================
 import { map, parkingRenderer, parkingLayerGroup } from "./mapCore.js";
-import { parkingItems, parkingVisibility, parkingPanelState } from "./state.js";
-import { renderLocations, renderActiveSidebarTab, closeSidebar } from "./sidebar.js";
+import { parkingItems, parkingVisibility, parkingPanelState, parkingLoadState } from "./state.js";
+import { closeSidebar, getMapPadding } from "./layout.js";
+import { requestSidebarRender } from "./uiEvents.js";
+import { fetchGeoJson, getFeatures, isPolygonGeometry } from "./geojson.js";
+import { escapeHtml } from "./utils.js";
 
 export const parkingTypeStyles = {
   car: {
@@ -28,160 +31,98 @@ export const parkingTypeStyles = {
   }
 };
 
-function getParkingTypeFromFeature(feature, fallbackType) {
-  const properties = feature.properties || {};
-  const value = `${properties.jenis_parkir || properties.jenis || properties.tipe || properties.type || properties.name || ""}`.toLowerCase();
-
-  if (value.includes("motor")) {
-    return "motor";
-  }
-
-  if (value.includes("mobil") || value.includes("car")) {
-    return "car";
-  }
-
-  return fallbackType;
-}
+const parkingTypeLayers = new Map();
+let pendingLoad;
 
 function getParkingTypeConfig(type) {
   return parkingTypeStyles[type] || parkingTypeStyles.car;
 }
 
 function injectParkingHatchPatterns() {
-  const svg = parkingRenderer && parkingRenderer._container;
-
-  if (!svg || svg.querySelector("#parking-car-hatch")) {
-    return;
-  }
-
+  const svg = map.getPane("parkingPane").querySelector("svg");
+  if (!svg || svg.querySelector("defs")) return;
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  defs.innerHTML = `
-    <pattern id="parking-car-hatch" patternUnits="userSpaceOnUse" width="8" height="8">
-      <path d="M-2,8 L8,-2 M0,10 L10,0" stroke="#374151" stroke-width="1.4" opacity="0.7"></path>
-    </pattern>
-    <pattern id="parking-motor-hatch" patternUnits="userSpaceOnUse" width="8" height="8">
-      <path d="M-2,8 L8,-2 M0,10 L10,0" stroke="#92400e" stroke-width="1.4" opacity="0.75"></path>
-    </pattern>
-  `;
-
+  // Background and hatch belong to the same fill: one SVG path per polygon.
+  defs.innerHTML = Object.values(parkingTypeStyles).map((config) => `
+    <pattern id="${config.patternId}" patternUnits="userSpaceOnUse" width="8" height="8">
+      <rect width="8" height="8" fill="${config.fillColor}" fill-opacity="0.5"></rect>
+      <path d="M-2,8 L8,-2 M0,10 L10,0" stroke="${config.hatchColor}" stroke-width="1.4" opacity="0.7"></path>
+    </pattern>`).join("");
   svg.prepend(defs);
 }
 
-function getParkingBaseStyle(feature) {
-  const type = getParkingTypeFromFeature(feature, "car");
-  const config = getParkingTypeConfig(type);
-
-  return {
-    color: config.borderColor,
-    weight: 2,
-    opacity: 0.95,
-    fillColor: config.fillColor,
-    fillOpacity: 0.5
-  };
-}
-
-function getParkingHatchStyle(feature) {
-  const type = getParkingTypeFromFeature(feature, "car");
-  const config = getParkingTypeConfig(type);
-
-  return {
-    color: "transparent",
-    weight: 0,
-    fillColor: `url(#${config.patternId})`,
-    fillOpacity: 1,
-    opacity: 1
-  };
-}
-
-function getParkingTitle(feature, type, index) {
-  const properties = feature.properties || {};
-  const config = getParkingTypeConfig(type);
-
-  return properties.nama || properties.name || `${config.label} ${properties.id || index + 1}`;
-}
-
 function createParkingPopupContent(item) {
-  return `
-    <div class="popup-card">
-      <h3>${item.title}</h3>
-      <span class="category">Parking & Transportation</span>
-      <p>Jenis: ${item.typeConfig.label}</p>
-      <p>ID: ${item.properties.id || "-"}</p>
-    </div>
-  `;
+  return `<div class="popup-card"><h3>${escapeHtml(item.title)}</h3>
+    <span class="category">Parking & Transportation</span>
+    <p>Jenis: ${item.typeConfig.label}</p><p>ID: ${escapeHtml(item.properties.id ?? "-")}</p></div>`;
 }
 
-export async function loadParkingGeoJson() {
+export function loadParkingGeoJson() {
+  if (pendingLoad) return pendingLoad;
   injectParkingHatchPatterns();
-
-  try {
-    await Promise.all([
-      loadParkingType("car"),
-      loadParkingType("motor")
-    ]);
-
-    renderActiveSidebarTab();
+  pendingLoad = Promise.allSettled(["car", "motor"].map((type) =>
+    parkingLoadState[type] === "ready" ? Promise.resolve() : loadParkingType(type)
+  )).then((results) => {
+    for (const result of results) if (result.status === "rejected") console.warn("GeoJSON parkiran gagal dimuat:", result.reason);
+    requestSidebarRender();
     syncParkingLayerInputs();
-  } catch (error) {
-    console.warn("GeoJSON parkiran gagal dimuat:", error);
-  }
+    return results.every((result) => result.status === "fulfilled");
+  }).finally(() => { pendingLoad = null; });
+  return pendingLoad;
 }
 
 async function loadParkingType(type) {
   const config = getParkingTypeConfig(type);
-  const response = await fetch(config.file);
-
-  if (!response.ok) {
-    throw new Error(`${config.file} tidak dapat dimuat`);
-  }
-
-  const data = await response.json();
-
-  data.features.forEach(function(feature, index) {
-    feature.properties = feature.properties || {};
-    feature.properties.jenis_parkir = feature.properties.jenis_parkir || config.label;
-    feature.properties.kategori = feature.properties.kategori || "Parking & Transportation";
-
-    const detectedType = getParkingTypeFromFeature(feature, type);
-    const typeConfig = getParkingTypeConfig(detectedType);
-    const title = getParkingTitle(feature, detectedType, index);
-    let popupLayer = null;
-
-    const item = {
-      id: `${detectedType}-${feature.properties.id || index + 1}`,
-      type: detectedType,
-      typeConfig: typeConfig,
-      title: title,
-      properties: feature.properties,
-      feature: feature,
-      baseLayer: null,
-      hatchLayer: null,
-      popupLayer: null
-    };
-
-    const baseLayer = L.geoJSON(feature, {
+  parkingLoadState[type] = "loading";
+  try {
+    const allFeatures = getFeatures(await fetchGeoJson(config.file));
+    const features = allFeatures.filter((feature) => feature?.type === "Feature" && isPolygonGeometry(feature.geometry));
+    if (!features.length) throw new Error(`${config.label}: tidak ada poligon yang valid.`);
+    if (features.length !== allFeatures.length) console.warn(`${config.label}: ${allFeatures.length - features.length} fitur tidak valid dilewati.`);
+    const items = features.map((feature, index) => ({
+      id: `${type}-${index}`, type, typeConfig: config,
+      title: String(feature.properties?.nama || feature.properties?.name || `${config.label} ${feature.properties?.id ?? index + 1}`),
+      properties: feature.properties || {}, layer: null
+    }));
+    const byFeature = new Map(features.map((feature, index) => [feature, items[index]]));
+    const layer = L.geoJSON({ type: "FeatureCollection", features }, {
       renderer: parkingRenderer,
-      style: getParkingBaseStyle,
-      onEachFeature: function(_, layer) {
-        popupLayer = layer;
-        layer.bindPopup(createParkingPopupContent(item));
+      style: { color: config.borderColor, weight: 2, opacity: 0.95,
+        fillColor: `url(#${config.patternId})`, fillOpacity: 1 },
+      onEachFeature: (feature, polygon) => {
+        const item = byFeature.get(feature);
+        item.layer = polygon;
+        // Build popup HTML only when the polygon is opened.
+        polygon.bindPopup(() => createParkingPopupContent(item));
       }
     });
+    const previous = parkingTypeLayers.get(type);
+    if (previous) parkingLayerGroup.removeLayer(previous);
+    for (let index = parkingItems.length - 1; index >= 0; index--) {
+      if (parkingItems[index].type === type) parkingItems.splice(index, 1);
+    }
+    parkingItems.push(...items);
+    parkingTypeLayers.set(type, layer);
+    if (parkingVisibility[type] !== false) parkingLayerGroup.addLayer(layer);
+    parkingLoadState[type] = "ready";
+  } catch (error) {
+    parkingLoadState[type] = "error";
+    throw error;
+  }
+}
 
-    const hatchLayer = L.geoJSON(feature, {
-      renderer: parkingRenderer,
-      interactive: false,
-      style: getParkingHatchStyle
-    });
+function isParkingVisible(type) {
+  return map.hasLayer(parkingLayerGroup) && parkingVisibility[type] !== false;
+}
 
-    item.baseLayer = baseLayer;
-    item.hatchLayer = hatchLayer;
-    item.popupLayer = popupLayer;
-
-    parkingLayerGroup.addLayer(baseLayer);
-    parkingLayerGroup.addLayer(hatchLayer);
-    parkingItems.push(item);
-  });
+function renderParkingStatus() {
+  const failed = Object.keys(parkingLoadState).filter((type) => parkingLoadState[type] === "error");
+  if (failed.length) return `<div class="data-status" role="status">${failed.map((type) => parkingTypeStyles[type].label).join(" dan ")} gagal dimuat.
+    <button type="button" onclick="retryLoadParking()">Coba lagi</button></div>`;
+  if (Object.values(parkingLoadState).some((state) => state === "idle" || state === "loading")) {
+    return '<div class="data-status" role="status">Memuat data parkiran...</div>';
+  }
+  return "";
 }
 
 function getParkingItemsByType(type) {
@@ -194,7 +135,7 @@ function renderParkingSubGroup(type) {
   const config = getParkingTypeConfig(type);
   const items = getParkingItemsByType(type);
   const isOpen = parkingPanelState[type] !== false;
-  const isVisible = parkingVisibility[type] !== false;
+  const isVisible = isParkingVisible(type);
 
   if (!items.length) {
     return "";
@@ -230,19 +171,19 @@ function renderParkingSubGroup(type) {
 
   items.forEach(function(item) {
     html += `
-      <div class="building-item parking-item" onclick="focusParkingItem('${item.id}')">
+      <button type="button" class="building-item parking-item" data-parking-id="${item.id}">
         <div class="building-label">
           <span
             class="parking-swatch"
             style="--parking-fill: ${config.fillColor}; --parking-border: ${config.borderColor}; --parking-hatch: ${config.hatchColor};"
           ></span>
           <div>
-            <div>${item.title}</div>
+            <div>${escapeHtml(item.title)}</div>
             <div class="building-category">${config.label}</div>
           </div>
         </div>
         <i class="fa-solid fa-chevron-right"></i>
-      </div>
+      </button>
     `;
   });
 
@@ -255,24 +196,10 @@ function renderParkingSubGroup(type) {
 }
 
 export function renderParkingGroupHtml() {
-  if (!parkingItems.length) {
-    return `
-      <div class="category-group">
-        <div class="category-group-header">
-          <span class="category-group-title">
-            <span class="category-sidebar-icon" style="--marker-color: #475569;">
-              <i class="fa-solid fa-square-parking"></i>
-            </span>
-            <span>Parking & Transportation</span>
-          </span>
-          <span class="category-filter-count">Memuat...</span>
-        </div>
-      </div>
-    `;
-  }
+  if (!parkingItems.length) return renderParkingStatus();
 
   const isOpen = parkingPanelState.main !== false;
-  const isVisible = parkingVisibility.car !== false || parkingVisibility.motor !== false;
+  const isVisible = isParkingVisible("car") || isParkingVisible("motor");
 
   return `
     <div class="category-group">
@@ -301,6 +228,7 @@ export function renderParkingGroupHtml() {
       <div class="category-group-body ${isOpen ? "" : "collapsed"}">
         ${renderParkingSubGroup("car")}
         ${renderParkingSubGroup("motor")}
+        ${renderParkingStatus()}
       </div>
     </div>
   `;
@@ -308,7 +236,7 @@ export function renderParkingGroupHtml() {
 
 export function renderParkingLayerControls() {
   if (!parkingItems.length) {
-    return "";
+    return renderParkingStatus();
   }
 
   let html = `
@@ -325,7 +253,7 @@ export function renderParkingLayerControls() {
   ["car", "motor"].forEach(function(type) {
     const config = getParkingTypeConfig(type);
     const items = getParkingItemsByType(type);
-    const checked = parkingVisibility[type] !== false ? "checked" : "";
+    const checked = isParkingVisible(type) ? "checked" : "";
 
     if (!items.length) {
       return;
@@ -353,66 +281,57 @@ export function renderParkingLayerControls() {
     `;
   });
 
-  return html;
+  return html + renderParkingStatus();
 }
 
 function setParkingVisible(type, visible) {
+  if (!Object.hasOwn(parkingTypeStyles, type)) return;
   parkingVisibility[type] = visible;
-
-  parkingItems.forEach(function(item) {
-    if (item.type !== type) {
-      return;
-    }
-
-    if (visible) {
-      parkingLayerGroup.addLayer(item.baseLayer);
-      parkingLayerGroup.addLayer(item.hatchLayer);
-    } else {
-      parkingLayerGroup.removeLayer(item.baseLayer);
-      parkingLayerGroup.removeLayer(item.hatchLayer);
-    }
-  });
+  const layer = parkingTypeLayers.get(type);
+  if (layer) {
+    if (visible) parkingLayerGroup.addLayer(layer);
+    else parkingLayerGroup.removeLayer(layer);
+  }
+  if (visible && !map.hasLayer(parkingLayerGroup)) parkingLayerGroup.addTo(map);
 }
 
-function syncParkingLayerInputs() {
-  const allParkingToggle = document.getElementById("allParkingToggle");
-  const parkingToggles = document.querySelectorAll("[data-parking-toggle]");
-
-  parkingToggles.forEach(function(input) {
-    const type = input.getAttribute("data-parking-toggle");
-    input.checked = parkingVisibility[type] !== false;
+export function syncParkingLayerInputs() {
+  document.querySelectorAll("[data-parking-toggle]").forEach((input) => {
+    input.checked = isParkingVisible(input.dataset.parkingToggle);
   });
-
-  if (allParkingToggle) {
-    allParkingToggle.checked = parkingVisibility.car !== false && parkingVisibility.motor !== false;
+  const all = document.getElementById("allParkingToggle");
+  const types = Object.keys(parkingTypeStyles).filter((type) => parkingTypeLayers.has(type));
+  if (all) {
+    all.checked = types.length > 0 && types.every(isParkingVisible);
+    all.indeterminate = types.some(isParkingVisible) && !all.checked;
   }
 }
 
 export function toggleParkingMainGroup() {
   parkingPanelState.main = parkingPanelState.main === false;
-  renderLocations();
+  requestSidebarRender();
 }
 
 export function toggleParkingSubGroup(type) {
   parkingPanelState[type] = parkingPanelState[type] === false;
-  renderLocations();
+  requestSidebarRender();
 }
 
 export function toggleParkingVisibilityFromLocations(type) {
-  const nextVisible = parkingVisibility[type] === false;
+  const nextVisible = !isParkingVisible(type);
 
   setParkingVisible(type, nextVisible);
   syncParkingLayerInputs();
-  renderLocations();
+  requestSidebarRender();
 }
 
 export function toggleAllParkingVisibilityFromLocations() {
-  const nextVisible = parkingVisibility.car === false && parkingVisibility.motor === false;
+  const nextVisible = !isParkingVisible("car") && !isParkingVisible("motor");
 
   setParkingVisible("car", nextVisible);
   setParkingVisible("motor", nextVisible);
   syncParkingLayerInputs();
-  renderLocations();
+  requestSidebarRender();
 }
 
 export function toggleParkingLayer(type, checkbox) {
@@ -431,28 +350,22 @@ export function focusParkingItem(itemId) {
     return parkingItem.id === itemId;
   });
 
-  if (!item || !item.popupLayer) {
+  if (!item || !item.layer) {
     return;
   }
 
-  if (parkingVisibility[item.type] === false) {
+  if (!isParkingVisible(item.type)) {
     setParkingVisible(item.type, true);
     syncParkingLayerInputs();
-    renderLocations();
+    requestSidebarRender();
   }
 
   if (!map.hasLayer(parkingLayerGroup)) {
     parkingLayerGroup.addTo(map);
   }
 
-  const bounds = item.popupLayer.getBounds();
-  map.fitBounds(bounds, {
-    padding: [40, 40],
-    maxZoom: 20
-  });
-  item.popupLayer.openPopup(bounds.getCenter());
-
-  if (window.innerWidth <= 700) {
-    closeSidebar();
-  }
+  if (window.innerWidth <= 700) closeSidebar();
+  const bounds = item.layer.getBounds();
+  map.fitBounds(bounds, { ...getMapPadding(), maxZoom: 20 });
+  item.layer.openPopup(bounds.getCenter());
 }
