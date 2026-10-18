@@ -206,7 +206,7 @@ export function renderInfo() {
       <ul style="padding-left: 18px; margin:0; display:flex; flex-direction:column; gap:5px;">
         <li>Peta kampus interaktif dengan marker kategori</li>
         <li>Pencarian gedung dengan autocomplete</li>
-        <li>Detail gedung lengkap (jam, fasilitas, telepon)</li>
+        <li>Informasi gedung sesuai data yang tersedia</li>
         <li>Filter kategori multi-select</li>
         <li>Deteksi posisi pengguna (GPS)</li>
         <li>Layer parkir mobil & motor</li>

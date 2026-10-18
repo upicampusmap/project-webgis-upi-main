@@ -33,7 +33,7 @@ try {
       assert(core.parkingLayerGroup.getLayers().length === 2, "Parking groups duplicated");
     });
   }
-  await check("GPS outside campus restores controls without flying beyond maxBounds", async () => {
+  await check("GPS outside campus restores controls without leaving campus", async () => {
     const geolocation = await import("../assets/js/map/geolocation.js");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
@@ -49,6 +49,34 @@ try {
     } finally {
       if (descriptor) Object.defineProperty(navigator, "geolocation", descriptor);
       else delete navigator.geolocation;
+    }
+  });
+  await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
+    const geolocation = await import("../assets/js/map/geolocation.js");
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
+    Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
+      getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })
+    }});
+    try {
+      detail.openBuildingDetail("Asrama UPI A");
+      geolocation.locateMe();
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      assert(core.map.getZoom() === 18, `GPS focus stopped at zoom ${core.map.getZoom()}`);
+      assert(core.map.getBounds().contains([-6.8605, 107.5905]), "GPS point outside map viewport");
+      const popup = document.querySelector(".leaflet-popup");
+      assert(popup?.textContent.includes("Posisi Anda"), "GPS popup missing");
+      const rect = popup.getBoundingClientRect();
+      assert(rect.left >= 0 && rect.right <= innerWidth, "GPS popup outside horizontal viewport");
+      assert(rect.top >= document.querySelector(".topbar").getBoundingClientRect().bottom, "GPS popup behind toolbar");
+      if (innerWidth <= 700) {
+        assert(rect.bottom <= document.getElementById("sidebar").getBoundingClientRect().top, "GPS popup behind mobile sheet");
+      }
+      assert(!document.getElementById("locateMeBtn").disabled, "GPS button remains disabled");
+    } finally {
+      geolocation.removeUserLocation();
+      if (descriptor) Object.defineProperty(navigator, "geolocation", descriptor);
+      else delete navigator.geolocation;
+      sidebar.showTab("locations");
     }
   });
   await check("All 77 building markers and sidebar rows render", () => {

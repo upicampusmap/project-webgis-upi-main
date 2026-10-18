@@ -85,5 +85,6 @@ Tidak ada langkah build npm. Unggah `images/optimized/`, kedua WebP beranda, dan
 seluruh modul baru bersama HTML/CSS yang diperbarui. Jangan mengunggah hanya satu
 file JavaScript karena modul saling mengimpor. Data dan tile yang ada tetap dipakai.
 
-Refactoring 15 Oktober 2026 disiapkan lokal di branch `refactor/webgis-audit`;
-push dan deployment belum dilakukan.
+Versi uji SUS `2026.10.18` mencakup refactoring data/layer, UI responsif,
+dan perbaikan pemusatan GPS. Lihat `docs/RELEASE-2026-10-18.md` untuk
+cakupan, hasil pengujian, serta keterbatasannya.

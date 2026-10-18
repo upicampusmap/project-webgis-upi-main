@@ -30,7 +30,7 @@ export function locateMe() {
         restoreLocationButton();
         return;
       }
-      // The campus map has maxBounds: flying to a distant GPS point cannot work.
+      // Keep the campus locator focused on the supported campus area.
       if (!campusBounds.contains([lat, lng])) {
         showToast("Anda berada di luar area kampus UPI. Peta tetap di area kampus.");
         restoreLocationButton();
@@ -62,8 +62,10 @@ export function locateMe() {
         weight: 2
       }).addTo(map);
 
-      map.flyToBounds(L.latLngBounds([lat, lng], [lat, lng]), { ...getMapPadding(), maxZoom: 18, duration: 1.2 });
       userLocationMarker.openPopup();
+      // Opening a popup stops camera animation and collapses the mobile sheet.
+      // Focus afterwards, using the resulting layout, without a competing flight.
+      map.fitBounds(L.latLngBounds([lat, lng], [lat, lng]), { ...getMapPadding(), maxZoom: 18, animate: false });
 
       let removeBtn = document.getElementById("removeLocationBtn");
       if (removeBtn) removeBtn.style.display = "inline-flex";
