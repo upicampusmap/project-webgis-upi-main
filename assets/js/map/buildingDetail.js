@@ -1,9 +1,9 @@
-import { map, buildingClusterGroup } from "./mapCore.js?v=2026.10.18";
-import { buildingsByName, markersByName, categoryVisibility, activeFilters, sidebarState } from "./state.js?v=2026.10.18";
-import { getIconConfigByCategory } from "./categories.js?v=2026.10.18";
-import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js?v=2026.10.18";
-import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.18";
-import { openSidebar, updateMobileSheetTitle, getMapPadding, setSidebarView } from "./layout.js?v=2026.10.18";
+import { map, buildingClusterGroup } from "./mapCore.js?v=2026.10.18.1";
+import { buildingsByName, markersByName, categoryVisibility, activeFilters, sidebarState } from "./state.js?v=2026.10.18.1";
+import { getIconConfigByCategory } from "./categories.js?v=2026.10.18.1";
+import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js?v=2026.10.18.1";
+import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.18.1";
+import { openSidebar, updateMobileSheetTitle, getMapPadding, setSidebarView } from "./layout.js?v=2026.10.18.1";
 
 let pulseTimer;
 let pulseElement;

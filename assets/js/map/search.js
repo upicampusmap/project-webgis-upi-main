@@ -1,10 +1,15 @@
-import { buildings } from "./state.js?v=2026.10.18";
-import { getIconConfigByCategory } from "./categories.js?v=2026.10.18";
-import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.18";
-import { escapeHtml } from "./utils.js?v=2026.10.18";
+import { buildings } from "./state.js?v=2026.10.18.1";
+import { getIconConfigByCategory } from "./categories.js?v=2026.10.18.1";
+import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.18.1";
+import { escapeHtml } from "./utils.js?v=2026.10.18.1";
 
 let initialized = false;
 let messageTimer;
+
+function syncClearButton() {
+  const button = document.getElementById("clearSearchBtn");
+  if (button) button.hidden = !document.getElementById("searchInput")?.value.length;
+}
 
 export function hideSuggestions() {
   const element = document.getElementById("searchSuggestions");
@@ -34,7 +39,18 @@ export function initSearchAutocomplete() {
   const suggestions = document.getElementById("searchSuggestions");
   if (!input || !suggestions) return;
   initialized = true;
+  const clearButton = document.getElementById("clearSearchBtn");
+  // Keep the mobile keyboard open when clearing an already focused input.
+  clearButton?.addEventListener("pointerdown", (event) => event.preventDefault());
+  clearButton?.addEventListener("click", () => {
+    input.value = "";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    input.focus({ preventScroll: true });
+  });
+  input.addEventListener("focus", syncClearButton);
+  syncClearButton();
   input.addEventListener("input", () => {
+    syncClearButton();
     hideSearchMessage();
     const keyword = input.value.toLocaleLowerCase("id").trim();
     if (keyword.length < 2) { hideSuggestions(); return; }
@@ -78,12 +94,14 @@ export function initSearchAutocomplete() {
 
 export function selectSuggestion(name) {
   document.getElementById("searchInput").value = name;
+  syncClearButton();
   hideSuggestions();
   hideSearchMessage();
   openBuildingDetail(name);
 }
 
 export function searchBuilding() {
+  syncClearButton();
   const keyword = document.getElementById("searchInput").value.toLocaleLowerCase("id").trim();
   hideSuggestions();
   if (!keyword) { showSearchMessage("Masukkan nama gedung terlebih dahulu.", "warning"); return; }

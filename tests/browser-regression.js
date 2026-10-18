@@ -10,16 +10,16 @@ async function check(name, run) {
   panel.textContent = results.join("\n");
 }
 try {
-  await import("../assets/js/map/main.js?v=2026.10.18");
-  const state = await import("../assets/js/map/state.js?v=2026.10.18");
-  const core = await import("../assets/js/map/mapCore.js?v=2026.10.18");
-  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.18");
-  const parking = await import("../assets/js/map/parking.js?v=2026.10.18");
-  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.18");
-  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.18");
-  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.18");
-  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.18");
-  const search = await import("../assets/js/map/search.js?v=2026.10.18");
+  await import("../assets/js/map/main.js?v=2026.10.18.1");
+  const state = await import("../assets/js/map/state.js?v=2026.10.18.1");
+  const core = await import("../assets/js/map/mapCore.js?v=2026.10.18.1");
+  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.18.1");
+  const parking = await import("../assets/js/map/parking.js?v=2026.10.18.1");
+  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.18.1");
+  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.18.1");
+  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.18.1");
+  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.18.1");
+  const search = await import("../assets/js/map/search.js?v=2026.10.18.1");
   const realFetch = window.testOriginalFetch;
   if (new URLSearchParams(location.search).has("parking-failure")) {
     await check("Partial parking failure preserves car polygons and shows retry", () => {
@@ -34,7 +34,7 @@ try {
     });
   }
   await check("GPS outside campus restores controls without leaving campus", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18.1");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
     const before = core.map.getCenter();
@@ -52,7 +52,7 @@ try {
     }
   });
   await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18.1");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
       getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })
@@ -181,6 +181,24 @@ try {
     const name = suggestions[0].dataset.buildingName;
     suggestions[0].click();
     assert(document.querySelector(".detail-building-name").textContent === name, "Suggestion failed to open detail");
+  });
+  await check("Clear search removes selected text, suggestions and messages while retaining focus", () => {
+    sidebar.showTab("locations");
+    const input = document.getElementById("searchInput");
+    const clear = document.getElementById("clearSearchBtn");
+    assert(input.value && !clear.hidden, "Clear button missing after choosing a suggestion");
+    search.showSearchMessage("Test message", "warning");
+    clear.click();
+    assert(input.value === "" && clear.hidden, "Clear button did not reset input/state");
+    assert(document.activeElement === input, "Input focus lost after clearing");
+    assert(input.getAttribute("aria-expanded") === "false" && !document.querySelector("#searchSuggestions button"), "Stale suggestions remain");
+    assert(getComputedStyle(document.getElementById("searchMessage")).display === "none", "Stale search message remains");
+    input.value = "asrama"; input.dispatchEvent(new Event("input", { bubbles: true }));
+    assert(!clear.hidden && document.querySelectorAll("#searchSuggestions button").length === 5, "Searching again after clearing failed");
+    const bounds = clear.getBoundingClientRect();
+    assert(bounds.width >= 44 && bounds.height >= 44, "Clear touch target is too small");
+    input.value = ""; input.dispatchEvent(new Event("input", { bubbles: true }));
+    assert(clear.hidden, "Clear button remains after manual deletion");
   });
   await check("Detail view hides browsing chrome and supports long content scrolling", () => {
     detail.openBuildingDetail("Asrama UPI A");

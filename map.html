@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="application-version" content="2026.10.18" />
+  <meta name="application-version" content="2026.10.18.1" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
   <title>Interactive Campus Map UPI</title>
 
@@ -23,7 +23,7 @@
   >
 
   <!-- CSS khusus halaman peta -->
-  <link rel="stylesheet" href="assets/css/map.css?v=2026.10.18" />
+  <link rel="stylesheet" href="assets/css/map.css?v=2026.10.18.1" />
 </head>
 
 <body>
@@ -73,6 +73,7 @@
 
     <div class="search-section">
       <div class="search-box">
+        <div class="search-field">
         <input
           type="text"
           id="searchInput"
@@ -80,7 +81,9 @@
           placeholder="Cari nama gedung..."
           autocomplete="off"
         >
-        <button onclick="searchBuilding()" aria-label="Cari gedung">
+        <button type="button" id="clearSearchBtn" class="search-clear" aria-label="Hapus pencarian" title="Hapus pencarian" hidden><span aria-hidden="true">×</span></button>
+        </div>
+        <button type="button" class="search-submit" onclick="searchBuilding()" aria-label="Cari gedung">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
       </div>
@@ -157,7 +160,7 @@
   <!-- Leaflet.markercluster JS -->
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <script defer src="assets/js/bootstrap.js?v=2026.10.18"></script>
+  <script defer src="assets/js/bootstrap.js?v=2026.10.18.1"></script>
 
 </body>
 </html>
