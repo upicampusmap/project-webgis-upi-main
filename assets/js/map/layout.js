@@ -1,6 +1,6 @@
-import { map } from "./mapCore.js";
-import { sidebarState } from "./state.js";
-import { requestSidebarRender } from "./uiEvents.js";
+import { map } from "./mapCore.js?v=2026.10.18";
+import { sidebarState } from "./state.js?v=2026.10.18";
+import { requestSidebarRender } from "./uiEvents.js?v=2026.10.18";
 
 export function isMobileLayout() {
   return window.matchMedia("(max-width: 700px)").matches;

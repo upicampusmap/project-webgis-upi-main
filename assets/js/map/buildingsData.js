@@ -1,11 +1,11 @@
 // Load atomically: keep the last valid map if a refresh fails.
-import { buildingClusterGroup } from "./mapCore.js";
-import { buildings, buildingMarkers, buildingsByName, markersByName, categoryPanelState, categoryVisibility } from "./state.js";
-import { getIconByCategory, getCategoryKeyByBuilding, getVisibleCategoryKeys, rebuildCategoryGroups } from "./categories.js";
-import { openBuildingDetail } from "./buildingDetail.js";
-import { requestSidebarRender } from "./uiEvents.js";
-import { syncMarkersToFilter } from "./markerVisibility.js";
-import { fetchGeoJson, parseBuildings } from "./geojson.js";
+import { buildingClusterGroup } from "./mapCore.js?v=2026.10.18";
+import { buildings, buildingMarkers, buildingsByName, markersByName, categoryPanelState, categoryVisibility } from "./state.js?v=2026.10.18";
+import { getIconByCategory, getCategoryKeyByBuilding, getVisibleCategoryKeys, rebuildCategoryGroups } from "./categories.js?v=2026.10.18";
+import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.18";
+import { requestSidebarRender } from "./uiEvents.js?v=2026.10.18";
+import { syncMarkersToFilter } from "./markerVisibility.js?v=2026.10.18";
+import { fetchGeoJson, parseBuildings } from "./geojson.js?v=2026.10.18";
 
 function setOverlay(id, visible) {
   const element = document.getElementById(id);

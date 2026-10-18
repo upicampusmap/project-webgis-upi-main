@@ -5,16 +5,16 @@
 // Handler onclick pada HTML yang dihasilkan diselesaikan lewat window.*
 // (di-wire di main.js), sehingga modul ini tidak perlu meng-import-nya.
 // =====================================================
-import { map, upiCampusTile } from "./mapCore.js";
-import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js";
+import { map, upiCampusTile } from "./mapCore.js?v=2026.10.18";
+import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.18";
 import {
   categoryIconStyles, getGroupedBuildings, getVisibleCategoryKeys, getCategoryIconHtml
-} from "./categories.js";
-import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js";
-import { renderBuildingDetail } from "./buildingDetail.js";
-import { syncCategoryLayerInputs } from "./markerVisibility.js";
-import { escapeHtml } from "./utils.js";
-import { updateMobileSheetTitle, setSidebarView } from "./layout.js";
+} from "./categories.js?v=2026.10.18";
+import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.18";
+import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.18";
+import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.18";
+import { escapeHtml } from "./utils.js?v=2026.10.18";
+import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.18";
 
 export function renderLocations() {
   const container = document.getElementById("sidebarContent");

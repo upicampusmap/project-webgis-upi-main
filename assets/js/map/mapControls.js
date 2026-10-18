@@ -3,12 +3,12 @@
 // Tanggung jawab: reset tampilan, cetak, toggle tile kampus,
 // toggle semua marker gedung, dan transparansi overlay.
 // =====================================================
-import { map, upiCampusTile } from "./mapCore.js";
-import { INITIAL_CENTER, INITIAL_ZOOM } from "./config.js";
-import { getVisibleCategoryKeys } from "./categories.js";
-import { syncCategoryLayerInputs } from "./markerVisibility.js";
-import { categoryVisibility } from "./state.js";
-import { syncMarkersToFilter } from "./markerVisibility.js";
+import { map, upiCampusTile } from "./mapCore.js?v=2026.10.18";
+import { INITIAL_CENTER, INITIAL_ZOOM } from "./config.js?v=2026.10.18";
+import { getVisibleCategoryKeys } from "./categories.js?v=2026.10.18";
+import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.18";
+import { categoryVisibility } from "./state.js?v=2026.10.18";
+import { syncMarkersToFilter } from "./markerVisibility.js?v=2026.10.18";
 
 export function resetMap() {
   map.setView(INITIAL_CENTER, INITIAL_ZOOM);

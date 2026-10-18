@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { optimizedPhotos } from "../assets/js/map/photos.js";
+import { optimizedPhotos } from "../assets/js/map/photos.js?v=2026.10.18";
 const root = new URL("../", import.meta.url);
 
 test("Optimized photo manifest points to real WebP files and preserves originals", async () => {
@@ -21,7 +21,7 @@ test("Map modules have no missing local imports or circular dependencies", async
   const graph = new Map();
   for (const file of files) {
     const code = await readFile(new URL(file, base), "utf8");
-    const imports = [...code.matchAll(/from\s+["']\.\/([^"']+)["']/g)].map((match) => match[1]);
+    const imports = [...code.matchAll(/from\s+["']\.\/([^"']+)["']/g)].map((match) => match[1].split("?")[0]);
     for (const imported of imports) assert.ok(files.includes(imported), `${file}: missing ${imported}`);
     graph.set(file, imports);
   }

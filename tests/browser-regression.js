@@ -10,16 +10,16 @@ async function check(name, run) {
   panel.textContent = results.join("\n");
 }
 try {
-  await import("../assets/js/map/main.js");
-  const state = await import("../assets/js/map/state.js");
-  const core = await import("../assets/js/map/mapCore.js");
-  const data = await import("../assets/js/map/buildingsData.js");
-  const parking = await import("../assets/js/map/parking.js");
-  const sidebar = await import("../assets/js/map/sidebar.js");
-  const visibility = await import("../assets/js/map/markerVisibility.js");
-  const controls = await import("../assets/js/map/mapControls.js");
-  const detail = await import("../assets/js/map/buildingDetail.js");
-  const search = await import("../assets/js/map/search.js");
+  await import("../assets/js/map/main.js?v=2026.10.18");
+  const state = await import("../assets/js/map/state.js?v=2026.10.18");
+  const core = await import("../assets/js/map/mapCore.js?v=2026.10.18");
+  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.18");
+  const parking = await import("../assets/js/map/parking.js?v=2026.10.18");
+  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.18");
+  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.18");
+  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.18");
+  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.18");
+  const search = await import("../assets/js/map/search.js?v=2026.10.18");
   const realFetch = window.testOriginalFetch;
   if (new URLSearchParams(location.search).has("parking-failure")) {
     await check("Partial parking failure preserves car polygons and shows retry", () => {
@@ -34,7 +34,7 @@ try {
     });
   }
   await check("GPS outside campus restores controls without leaving campus", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
     const before = core.map.getCenter();
@@ -52,7 +52,7 @@ try {
     }
   });
   await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
       getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })

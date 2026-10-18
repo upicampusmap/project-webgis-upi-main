@@ -3,12 +3,12 @@
 // Tanggung jawab: memuat GeoJSON parkir, menggambar area + pola arsir,
 // merender daftar/kontrol parkir di sidebar, dan toggle visibilitasnya.
 // =====================================================
-import { map, parkingRenderer, parkingLayerGroup } from "./mapCore.js";
-import { parkingItems, parkingVisibility, parkingPanelState, parkingLoadState } from "./state.js";
-import { closeSidebar, getMapPadding } from "./layout.js";
-import { requestSidebarRender } from "./uiEvents.js";
-import { fetchGeoJson, getFeatures, isPolygonGeometry } from "./geojson.js";
-import { escapeHtml } from "./utils.js";
+import { map, parkingRenderer, parkingLayerGroup } from "./mapCore.js?v=2026.10.18";
+import { parkingItems, parkingVisibility, parkingPanelState, parkingLoadState } from "./state.js?v=2026.10.18";
+import { closeSidebar, getMapPadding } from "./layout.js?v=2026.10.18";
+import { requestSidebarRender } from "./uiEvents.js?v=2026.10.18";
+import { fetchGeoJson, getFeatures, isPolygonGeometry } from "./geojson.js?v=2026.10.18";
+import { escapeHtml } from "./utils.js?v=2026.10.18";
 
 export const parkingTypeStyles = {
   car: {

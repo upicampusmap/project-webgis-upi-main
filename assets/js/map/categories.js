@@ -3,7 +3,7 @@
 // Tanggung jawab: konfigurasi kategori + memetakan gedung ke
 // kategori/ikon, serta mengelompokkan gedung per kategori.
 // =====================================================
-import { buildings, groupedBuildings } from "./state.js";
+import { buildings, groupedBuildings } from "./state.js?v=2026.10.18";
 
 export const categoryIconStyles = {
   academic: {

@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { getFeatures, parseBuildings, isPosition, isPolygonGeometry, normalizeImagePath, fetchGeoJson } from "../assets/js/map/geojson.js";
-import { escapeHtml, safeWebUrl } from "../assets/js/map/utils.js";
-import { getIconConfigByCategory, getCategoryKeyByBuilding, rebuildCategoryGroups, getGroupedBuildings } from "../assets/js/map/categories.js";
-import { buildings } from "../assets/js/map/state.js";
+import { getFeatures, parseBuildings, isPosition, isPolygonGeometry, normalizeImagePath, fetchGeoJson } from "../assets/js/map/geojson.js?v=2026.10.18";
+import { escapeHtml, safeWebUrl } from "../assets/js/map/utils.js?v=2026.10.18";
+import { getIconConfigByCategory, getCategoryKeyByBuilding, rebuildCategoryGroups, getGroupedBuildings } from "../assets/js/map/categories.js?v=2026.10.18";
+import { buildings } from "../assets/js/map/state.js?v=2026.10.18";
 
 const collection = (features) => ({ type: "FeatureCollection", features });
 const point = (coordinates, properties = { name: "Gedung" }) => ({ type: "Feature", geometry: { type: "Point", coordinates }, properties });

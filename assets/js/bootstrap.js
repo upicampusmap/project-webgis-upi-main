@@ -3,7 +3,7 @@
   try {
     if (location.protocol === "file:") throw new Error("Jalankan start-server.bat lalu buka peta melalui localhost, bukan file://.");
     if (!window.L || !L.markerClusterGroup) throw new Error("Leaflet gagal dimuat. Periksa koneksi internet lalu muat ulang halaman.");
-    await import("./map/main.js");
+    await import("./map/main.js?v=2026.10.18");
   } catch (error) {
     console.error("Inisialisasi WebGIS gagal:", error);
     document.getElementById("mapLoadingOverlay").style.display = "none";

@@ -4,32 +4,32 @@
 // window (agar atribut onclick/onchange/oninput di HTML tetap jalan),
 // memasang listener global, dan menjalankan urutan inisialisasi.
 // =====================================================
-import { map, upiCampusTile, parkingLayerGroup } from "./mapCore.js";
-import { renderLegendItems, toggleLegend } from "./legend.js";
+import { map, upiCampusTile, parkingLayerGroup } from "./mapCore.js?v=2026.10.18";
+import { renderLegendItems, toggleLegend } from "./legend.js?v=2026.10.18";
 import {
   renderSidebarSkeleton, showTab, renderActiveSidebarTab
-} from "./sidebar.js";
-import { toggleSidebar, updateSidebarChrome, initLayout, closeSidebar } from "./layout.js";
-import { searchBuilding, initSearchAutocomplete } from "./search.js";
-import { locateMe, removeUserLocation } from "./geolocation.js";
+} from "./sidebar.js?v=2026.10.18";
+import { toggleSidebar, updateSidebarChrome, initLayout, closeSidebar } from "./layout.js?v=2026.10.18";
+import { searchBuilding, initSearchAutocomplete } from "./search.js?v=2026.10.18";
+import { locateMe, removeUserLocation } from "./geolocation.js?v=2026.10.18";
 import {
   resetMap, printMap, toggleCampusTile, toggleBuildingMarkers, setCampusOpacity
-} from "./mapControls.js";
+} from "./mapControls.js?v=2026.10.18";
 import {
   toggleFilter, toggleCategoryGroup,
   toggleCategoryVisibilityFromLocations, toggleCategoryMarkers
-} from "./markerVisibility.js";
-import { sidebarState } from "./state.js";
-import { openBuildingDetail } from "./buildingDetail.js";
+} from "./markerVisibility.js?v=2026.10.18";
+import { sidebarState } from "./state.js?v=2026.10.18";
+import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.18";
 import {
   loadParkingGeoJson,
   toggleParkingMainGroup, toggleParkingSubGroup,
   toggleParkingVisibilityFromLocations, toggleAllParkingVisibilityFromLocations,
   focusParkingItem, toggleParkingLayer, toggleAllParkingLayers, syncParkingLayerInputs
-} from "./parking.js";
+} from "./parking.js?v=2026.10.18";
 import {
   loadBuildingsGeoJson, retryLoadBuildings
-} from "./buildingsData.js";
+} from "./buildingsData.js?v=2026.10.18";
 
 // ---------------------------------------------------------------
 // Ekspos handler yang dipanggil dari atribut onclick/onchange/oninput

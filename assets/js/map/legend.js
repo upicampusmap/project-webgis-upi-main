@@ -2,9 +2,9 @@
 // legend.js — Legenda kategori pada peta
 // Tanggung jawab: merender & menampilkan/menyembunyikan panel legenda.
 // =====================================================
-import { categoryIconStyles, getVisibleCategoryKeys } from "./categories.js";
-import { parkingTypeStyles } from "./parking.js";
-import { parkingItems } from "./state.js";
+import { categoryIconStyles, getVisibleCategoryKeys } from "./categories.js?v=2026.10.18";
+import { parkingTypeStyles } from "./parking.js?v=2026.10.18";
+import { parkingItems } from "./state.js?v=2026.10.18";
 
 // Render legenda kategori (dipanggil sekali saat init)
 export function renderLegendItems() {
