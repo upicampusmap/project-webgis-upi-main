@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readdir, readFile, stat } from "node:fs/promises";
-import { optimizedPhotos } from "../assets/js/map/photos.js?v=2026.10.18.1";
+import { optimizedPhotos } from "../assets/js/map/photos.js?v=2026.10.19";
 const root = new URL("../", import.meta.url);
 
 test("Optimized photo manifest points to real WebP files and preserves originals", async () => {

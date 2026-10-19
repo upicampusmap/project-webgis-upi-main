@@ -5,16 +5,16 @@
 // Handler onclick pada HTML yang dihasilkan diselesaikan lewat window.*
 // (di-wire di main.js), sehingga modul ini tidak perlu meng-import-nya.
 // =====================================================
-import { map, upiCampusTile } from "./mapCore.js?v=2026.10.18.1";
-import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.18.1";
+import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19";
+import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.19";
 import {
   categoryIconStyles, getGroupedBuildings, getVisibleCategoryKeys, getCategoryIconHtml
-} from "./categories.js?v=2026.10.18.1";
-import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.18.1";
-import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.18.1";
-import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.18.1";
-import { escapeHtml } from "./utils.js?v=2026.10.18.1";
-import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.18.1";
+} from "./categories.js?v=2026.10.19";
+import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.19";
+import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.19";
+import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19";
+import { escapeHtml } from "./utils.js?v=2026.10.19";
+import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.19";
 
 export function renderLocations() {
   const container = document.getElementById("sidebarContent");

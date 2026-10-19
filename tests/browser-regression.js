@@ -10,16 +10,29 @@ async function check(name, run) {
   panel.textContent = results.join("\n");
 }
 try {
-  await import("../assets/js/map/main.js?v=2026.10.18.1");
-  const state = await import("../assets/js/map/state.js?v=2026.10.18.1");
-  const core = await import("../assets/js/map/mapCore.js?v=2026.10.18.1");
-  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.18.1");
-  const parking = await import("../assets/js/map/parking.js?v=2026.10.18.1");
-  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.18.1");
-  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.18.1");
-  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.18.1");
-  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.18.1");
-  const search = await import("../assets/js/map/search.js?v=2026.10.18.1");
+  await import("../assets/js/map/main.js?v=2026.10.19");
+  const state = await import("../assets/js/map/state.js?v=2026.10.19");
+  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19");
+  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19");
+  const parking = await import("../assets/js/map/parking.js?v=2026.10.19");
+  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19");
+  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19");
+  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19");
+  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19");
+  const search = await import("../assets/js/map/search.js?v=2026.10.19");
+  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19");
+  const layout = await import("../assets/js/map/layout.js?v=2026.10.19");
+  function assertCampusOverview() {
+    const { paddingTopLeft: topLeft, paddingBottomRight: bottomRight } = layout.getMapPadding();
+    const size = core.map.getSize();
+    const center = core.map.latLngToContainerPoint(campusBounds.getCenter());
+    const expected = L.point((topLeft[0] + size.x - bottomRight[0]) / 2, (topLeft[1] + size.y - bottomRight[1]) / 2);
+    assert(center.distanceTo(expected) <= 2, `Campus off-center: ${center.distanceTo(expected).toFixed(1)}px`);
+    const nw = core.map.latLngToContainerPoint(campusBounds.getNorthWest());
+    const se = core.map.latLngToContainerPoint(campusBounds.getSouthEast());
+    assert(nw.x >= topLeft[0] - 1 && nw.y >= topLeft[1] - 1 && se.x <= size.x - bottomRight[0] + 1 && se.y <= size.y - bottomRight[1] + 1, "Campus clipped by panel/toolbar");
+  }
+  await check("Initial campus view is centered and fits the unobstructed map area", assertCampusOverview);
   const realFetch = window.testOriginalFetch;
   if (new URLSearchParams(location.search).has("parking-failure")) {
     await check("Partial parking failure preserves car polygons and shows retry", () => {
@@ -34,7 +47,7 @@ try {
     });
   }
   await check("GPS outside campus restores controls without leaving campus", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18.1");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
     const before = core.map.getCenter();
@@ -52,7 +65,7 @@ try {
     }
   });
   await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.18.1");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
       getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })
@@ -238,6 +251,17 @@ try {
     document.querySelector("[data-back-locations]").click();
     assert(document.getElementById("sidebar").dataset.view === "browse", "Back did not restore browsing");
     assert(getComputedStyle(document.querySelector(".search-section")).display !== "none", "Search not restored");
+  });
+  await check("Reset recenters the campus and closes competing parking popups", async () => {
+    sidebar.showTab("locations");
+    document.getElementById("searchInput").blur();
+    const layer = state.parkingItems[0].layer;
+    layer.openPopup(layer.getBounds().getCenter());
+    const popup = layer.getPopup();
+    controls.resetMap();
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    assert(!popup.isOpen(), "Parking popup remains open after reset");
+    assertCampusOverview();
   });
   await check("Responsive toolbar and sidebar fit viewport without horizontal overflow", () => {
     const toolbar = document.querySelector(".topbar").getBoundingClientRect();
