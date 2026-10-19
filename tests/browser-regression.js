@@ -10,19 +10,19 @@ async function check(name, run) {
   panel.textContent = results.join("\n");
 }
 try {
-  await import("../assets/js/map/main.js?v=2026.10.19.3");
-  const state = await import("../assets/js/map/state.js?v=2026.10.19.3");
-  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19.3");
-  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19.3");
-  const parking = await import("../assets/js/map/parking.js?v=2026.10.19.3");
-  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19.3");
-  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19.3");
-  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19.3");
-  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19.3");
-  const search = await import("../assets/js/map/search.js?v=2026.10.19.3");
-  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19.3");
-  const layout = await import("../assets/js/map/layout.js?v=2026.10.19.3");
-  const { initCategoryScroll } = await import("../assets/js/map/categoryScroll.js?v=2026.10.19.3");
+  await import("../assets/js/map/main.js?v=2026.10.19.4");
+  const state = await import("../assets/js/map/state.js?v=2026.10.19.4");
+  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19.4");
+  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19.4");
+  const parking = await import("../assets/js/map/parking.js?v=2026.10.19.4");
+  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19.4");
+  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19.4");
+  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19.4");
+  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19.4");
+  const search = await import("../assets/js/map/search.js?v=2026.10.19.4");
+  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19.4");
+  const layout = await import("../assets/js/map/layout.js?v=2026.10.19.4");
+  const { initCategoryScroll } = await import("../assets/js/map/categoryScroll.js?v=2026.10.19.4");
   function assertCampusOverview() {
     const { paddingTopLeft: topLeft, paddingBottomRight: bottomRight } = layout.getMapPadding();
     const size = core.map.getSize();
@@ -219,7 +219,7 @@ try {
     assert(core.parkingLayerGroup.getLayers().length === 2 && state.parkingPanelState.main === false, "Parking visibility failed to restore layers independently");
   });
   await check("GPS outside campus restores controls without leaving campus", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.3");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.4");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
     const before = core.map.getCenter();
@@ -237,7 +237,7 @@ try {
     }
   });
   await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.3");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.4");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
       getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })

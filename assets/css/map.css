@@ -255,6 +255,8 @@ body[data-sidebar-view="detail"] .leaflet-popup { visibility: hidden; }
   .sidebar[data-sheet-size="compact"] .search-box { width: 100%; }
   .sidebar[data-sheet-size="compact"] .sidebar-tabs { display: flex; padding: 0 12px; }
   .sidebar.closed { transform: translateY(calc(100% - var(--sheet-peek) - env(safe-area-inset-bottom, 0px))); }
+  /* Popup placement needs the free map area immediately, even on a busy device. */
+  body[data-popup-open="true"] .sidebar { transition: none; }
   .sidebar-toggle { display: none; }
   .mobile-sheet-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; order: 0; flex: 0 0 var(--sheet-peek); width: 100%; min-height: var(--sheet-peek); padding: 17px 18px 7px; background: #fff; border: 0; border-bottom: 1px solid var(--border); text-align: left; }
   .mobile-sheet-header::before { content: ""; position: absolute; top: 9px; left: calc(50% - 18px); width: 36px; height: 4px; border-radius: 4px; background: #d8e0e9; }
