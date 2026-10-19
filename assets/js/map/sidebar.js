@@ -5,16 +5,16 @@
 // Handler onclick pada HTML yang dihasilkan diselesaikan lewat window.*
 // (di-wire di main.js), sehingga modul ini tidak perlu meng-import-nya.
 // =====================================================
-import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19.2";
-import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.19.2";
+import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19.3";
+import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.19.3";
 import {
   categoryIconStyles, getGroupedBuildings, getVisibleCategoryKeys, getCategoryIconHtml
-} from "./categories.js?v=2026.10.19.2";
-import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.19.2";
-import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.19.2";
-import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.2";
-import { escapeHtml } from "./utils.js?v=2026.10.19.2";
-import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.19.2";
+} from "./categories.js?v=2026.10.19.3";
+import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.19.3";
+import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.19.3";
+import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.3";
+import { escapeHtml } from "./utils.js?v=2026.10.19.3";
+import { updateMobileSheetTitle, setSidebarView, openSidebar } from "./layout.js?v=2026.10.19.3";
 
 export function renderLocations() {
   const container = document.getElementById("sidebarContent");
@@ -250,6 +250,7 @@ export function renderSidebarSkeleton() {
 export function showTab(tabName) {
   if (!["locations", "layers", "info"].includes(tabName)) return;
   map.closePopup();
+  openSidebar({ expanded: true });
   setSidebarView("browse");
   sidebarState.tab = tabName;
   sidebarState.building = null;

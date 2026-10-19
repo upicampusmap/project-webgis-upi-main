@@ -1,6 +1,6 @@
-import { map } from "./mapCore.js?v=2026.10.19.2";
-import { sidebarState } from "./state.js?v=2026.10.19.2";
-import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19.2";
+import { map } from "./mapCore.js?v=2026.10.19.3";
+import { sidebarState } from "./state.js?v=2026.10.19.3";
+import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19.3";
 
 export function isMobileLayout() {
   return window.matchMedia("(max-width: 700px)").matches;
@@ -16,30 +16,57 @@ export function setSidebarView(view) {
   if (!sidebar) return;
   sidebar.dataset.view = view;
   document.body.dataset.sidebarView = view;
+  updateSidebarChrome();
+}
+
+function visibleSheetHeight(sidebar) {
+  if (!sidebar) return 0;
+  if (!sidebar.classList.contains("closed")) return sidebar.offsetHeight;
+  const safeBottom = parseFloat(getComputedStyle(sidebar).paddingBottom) || 0;
+  return (sidebar.querySelector(".mobile-sheet-header")?.offsetHeight || 64) + safeBottom;
 }
 
 export function updateSidebarChrome() {
   const sidebar = document.getElementById("sidebar");
   if (!sidebar) return;
   const closed = sidebar.classList.contains("closed");
-  document.querySelectorAll("#sidebarToggle, .mobile-sheet-header").forEach((button) => {
-    button.setAttribute("aria-expanded", String(!closed));
-  });
+  const mobile = isMobileLayout();
+  if (mobile && !closed && sidebar.querySelector(".search-section")?.contains(document.activeElement)) {
+    sidebar.dataset.sheetSize = "expanded";
+  }
+  const compact = mobile && sidebar.dataset.sheetSize !== "expanded";
+  document.getElementById("sidebarToggle")?.setAttribute("aria-expanded", String(!closed));
+  sidebar.querySelector(".mobile-sheet-header")?.setAttribute("aria-expanded", String(!closed && !compact));
   for (const selector of [".search-section", ".sidebar-tabs", ".sidebar-content", ".sidebar-footer"]) {
-    sidebar.querySelector(selector)?.toggleAttribute("inert", closed);
+    sidebar.querySelector(selector)?.toggleAttribute("inert", closed || (compact && selector === ".sidebar-content"));
   }
   const icon = document.getElementById("toggleIcon");
   if (icon) icon.className = `fa-solid fa-chevron-${isMobileLayout() ? (closed ? "up" : "down") : (closed ? "right" : "left")}`;
   const action = document.getElementById("mobileSheetAction");
-  if (action) action.textContent = closed ? "Buka panel" : "Perkecil";
+  if (action) action.textContent = closed ? "Buka panel" : compact ? "Perbesar" : "Perkecil";
   const sheetIcon = document.getElementById("mobileSheetIcon");
-  if (sheetIcon) sheetIcon.className = `fa-solid fa-chevron-${closed ? "up" : "down"}`;
+  if (sheetIcon) sheetIcon.className = `fa-solid fa-chevron-${closed || compact ? "up" : "down"}`;
+  if (mobile) document.body.style.setProperty("--visible-sheet-height", `${visibleSheetHeight(sidebar)}px`);
+  else document.body.style.removeProperty("--visible-sheet-height");
   if (activePopup) positionPopup(activePopup);
 }
 
 export function toggleSidebar() {
   const sidebar = document.getElementById("sidebar");
   if (!sidebar) return;
+  if (isMobileLayout()) {
+    map.closePopup();
+    if (sidebar.classList.contains("closed")) {
+      sidebar.dataset.sheetSize = "compact";
+      openSidebar();
+    } else if (sidebar.dataset.sheetSize === "expanded") {
+      // Move focus out of search/content before hiding them or shrinking the sheet.
+      sidebar.querySelector(".mobile-sheet-header")?.focus({ preventScroll: true });
+      sidebar.dataset.sheetSize = "compact";
+      updateSidebarChrome();
+    } else openSidebar({ expanded: true });
+    return;
+  }
   if (sidebar.classList.contains("closed")) {
     map.closePopup();
     openSidebar();
@@ -57,8 +84,11 @@ export function closeSidebar() {
   updateSidebarChrome();
 }
 
-export function openSidebar() {
-  document.getElementById("sidebar")?.classList.remove("closed");
+export function openSidebar({ expanded = false } = {}) {
+  const sidebar = document.getElementById("sidebar");
+  if (!sidebar) return;
+  if (expanded && isMobileLayout()) sidebar.dataset.sheetSize = "expanded";
+  sidebar.classList.remove("closed");
   updateSidebarChrome();
 }
 
@@ -68,11 +98,9 @@ export function getMapPadding() {
   const toolbar = document.querySelector(".topbar");
   const top = toolbar ? toolbar.offsetTop + toolbar.offsetHeight : 70;
   const mobile = isMobileLayout();
-  const safeBottom = sidebar ? parseFloat(getComputedStyle(sidebar).paddingBottom) || 0 : 0;
-  const peek = sidebar?.querySelector(".mobile-sheet-header")?.offsetHeight || 64;
   return {
     paddingTopLeft: [mobile || closed ? 16 : sidebar.offsetLeft + sidebar.offsetWidth + 16, top + 16],
-    paddingBottomRight: [16, mobile ? (closed ? peek + safeBottom : sidebar.offsetHeight) + 16 : 24]
+    paddingBottomRight: [16, mobile ? visibleSheetHeight(sidebar) + 16 : 24]
   };
 }
 
@@ -101,7 +129,20 @@ function positionPopup(popup) {
 
 export function initLayout() {
   const search = document.querySelector(".search-section");
-  search?.addEventListener("focusin", () => { document.body.dataset.searchFocused = "true"; });
+  search?.addEventListener("focusin", () => {
+    document.body.dataset.searchFocused = "true";
+    if (isMobileLayout()) {
+      // Compact details expose quick search; keep it visible when expanding.
+      if (document.getElementById("sidebar")?.dataset.view === "detail") {
+        sidebarState.building = null;
+        sidebarState.tab = "locations";
+        setSidebarView("browse");
+        updateMobileSheetTitle("Lokasi");
+        requestSidebarRender();
+      }
+      openSidebar({ expanded: true });
+    }
+  });
   search?.addEventListener("focusout", (event) => {
     if (!search.contains(event.relatedTarget)) document.body.dataset.searchFocused = "false";
   });
@@ -125,6 +166,13 @@ export function initLayout() {
     document.body.dataset.popupOpen = "false";
   });
   document.body.dataset.popupOpen = "false";
+  // Data refreshes only rerender the content; they never expand the mobile sheet.
+  document.getElementById("sidebar")?.setAttribute("data-sheet-size", "compact");
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(updateSidebarChrome);
+    const sidebar = document.getElementById("sidebar");
+    if (sidebar) observer.observe(sidebar);
+  }
   setSidebarView("browse");
   updateSidebarChrome();
 }

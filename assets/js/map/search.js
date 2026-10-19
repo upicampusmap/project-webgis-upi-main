@@ -1,7 +1,7 @@
-import { buildings } from "./state.js?v=2026.10.19.2";
-import { getIconConfigByCategory } from "./categories.js?v=2026.10.19.2";
-import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.19.2";
-import { escapeHtml } from "./utils.js?v=2026.10.19.2";
+import { buildings } from "./state.js?v=2026.10.19.3";
+import { getIconConfigByCategory } from "./categories.js?v=2026.10.19.3";
+import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.19.3";
+import { escapeHtml } from "./utils.js?v=2026.10.19.3";
 
 let initialized = false;
 let messageTimer;

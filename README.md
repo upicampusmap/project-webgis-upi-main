@@ -85,9 +85,10 @@ Tidak ada langkah build npm. Unggah `images/optimized/`, kedua WebP beranda, dan
 seluruh modul baru bersama HTML/CSS yang diperbarui. Jangan mengunggah hanya satu
 file JavaScript karena modul saling mengimpor. Data dan tile yang ada tetap dipakai.
 
-Versi uji SUS `2026.10.19.2` mencakup refactoring data/layer, UI responsif,
+Versi uji SUS `2026.10.19.3` mencakup refactoring data/layer, UI responsif,
 perbaikan GPS, hapus pencarian, pemusatan tampilan awal kampus, serta menu
 kategori gedung/parkiran yang tertutup secara default, serta scroll dan drag
-mouse pada deretan filter kategori.
+mouse pada deretan filter kategori. Panel HP dimulai pada sekitar seperempat
+layar; tombol Perbesar, tab, pencarian, atau pilihan gedung membuka panel lengkap.
 Lihat `docs/RELEASE-2026-10-19.md` dan `docs/RELEASE-2026-10-18.md` untuk
 cakupan, hasil pengujian, serta keterbatasannya.

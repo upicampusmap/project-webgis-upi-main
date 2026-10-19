@@ -10,19 +10,19 @@ async function check(name, run) {
   panel.textContent = results.join("\n");
 }
 try {
-  await import("../assets/js/map/main.js?v=2026.10.19.2");
-  const state = await import("../assets/js/map/state.js?v=2026.10.19.2");
-  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19.2");
-  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19.2");
-  const parking = await import("../assets/js/map/parking.js?v=2026.10.19.2");
-  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19.2");
-  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19.2");
-  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19.2");
-  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19.2");
-  const search = await import("../assets/js/map/search.js?v=2026.10.19.2");
-  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19.2");
-  const layout = await import("../assets/js/map/layout.js?v=2026.10.19.2");
-  const { initCategoryScroll } = await import("../assets/js/map/categoryScroll.js?v=2026.10.19.2");
+  await import("../assets/js/map/main.js?v=2026.10.19.3");
+  const state = await import("../assets/js/map/state.js?v=2026.10.19.3");
+  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19.3");
+  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19.3");
+  const parking = await import("../assets/js/map/parking.js?v=2026.10.19.3");
+  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19.3");
+  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19.3");
+  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19.3");
+  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19.3");
+  const search = await import("../assets/js/map/search.js?v=2026.10.19.3");
+  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19.3");
+  const layout = await import("../assets/js/map/layout.js?v=2026.10.19.3");
+  const { initCategoryScroll } = await import("../assets/js/map/categoryScroll.js?v=2026.10.19.3");
   function assertCampusOverview() {
     const { paddingTopLeft: topLeft, paddingBottomRight: bottomRight } = layout.getMapPadding();
     const size = core.map.getSize();
@@ -40,6 +40,41 @@ try {
     assert(headers.every((button) => button.getAttribute("aria-expanded") === "false" && document.getElementById(button.getAttribute("aria-controls"))?.hidden), "A group starts expanded");
     assert([...document.querySelectorAll("[data-building-name], [data-parking-id]")].every((row) => row.getClientRects().length === 0), "Location rows visible before opening headings");
     assert(core.buildingClusterGroup.getLayers().length === 77, "Collapsing lists hides map markers");
+  });
+  await check("Mobile starts at a quarter screen with reachable search/tabs and expands on demand", () => {
+    if (!layout.isMobileLayout()) return;
+    const sheet = document.getElementById("sidebar");
+    const header = sheet.querySelector(".mobile-sheet-header");
+    const input = document.getElementById("searchInput");
+    const assertCompact = () => {
+      const rect = sheet.getBoundingClientRect();
+      const safeBottom = parseFloat(getComputedStyle(sheet).paddingBottom) || 0;
+      const expected = Math.max(innerHeight * .25, 146 + safeBottom);
+      assert(Math.abs(rect.height - expected) <= 2, `Compact panel height ${rect.height}, expected ${expected}`);
+      assert(header.getAttribute("aria-expanded") === "false" && header.textContent.includes("Perbesar"), "No clear expand action");
+      assert(getComputedStyle(document.getElementById("sidebarContent")).display === "none", "Full list crowds compact mode");
+      for (const element of [input, ...sheet.querySelectorAll(".sidebar-tabs button")]) {
+        const control = element.getBoundingClientRect();
+        assert(control.top >= rect.top && control.bottom <= rect.bottom - safeBottom + 1 && control.height >= 44, "A compact control is clipped or too small");
+      }
+      assert(Math.abs(layout.getMapPadding().paddingBottomRight[1] - rect.height - 16) <= 1, "Map padding ignores compact height");
+    };
+    assertCompact();
+    // Async layer/filter refreshes must not expand the user's compact sheet.
+    sidebar.renderActiveSidebarTab();
+    assertCompact();
+    header.click();
+    assert(sheet.dataset.sheetSize === "expanded" && sheet.offsetHeight > innerHeight * .45, "Expand action failed");
+    assert(header.getAttribute("aria-expanded") === "true" && !document.getElementById("sidebarContent").hasAttribute("inert"), "Expanded content inaccessible");
+    header.click();
+    assertCompact();
+    sheet.querySelector('[data-tab="layers"]').click();
+    assert(sheet.dataset.sheetSize === "expanded" && document.getElementById("allMarkersToggle"), "Layer tab did not reveal its content");
+    header.click();
+    input.focus();
+    assert(sheet.dataset.sheetSize === "expanded" && document.body.dataset.searchFocused === "true", "Search did not expand for suggestions");
+    input.blur();
+    sidebar.showTab("locations");
   });
   const realFetch = window.testOriginalFetch;
   if (new URLSearchParams(location.search).has("parking-failure")) {
@@ -184,7 +219,7 @@ try {
     assert(core.parkingLayerGroup.getLayers().length === 2 && state.parkingPanelState.main === false, "Parking visibility failed to restore layers independently");
   });
   await check("GPS outside campus restores controls without leaving campus", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.2");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.3");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
     const before = core.map.getCenter();
@@ -202,7 +237,7 @@ try {
     }
   });
   await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.2");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.3");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
       getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })
@@ -361,6 +396,24 @@ try {
     const actions = document.querySelector(".detail-actions").getBoundingClientRect();
     const visible = content.getBoundingClientRect();
     assert(actions.bottom <= visible.bottom + 2, "Detail actions cannot be reached by scrolling");
+  });
+  await check("Mobile can shrink details and start a new search without hiding the input", () => {
+    if (!layout.isMobileLayout()) return;
+    const sheet = document.getElementById("sidebar");
+    const header = sheet.querySelector(".mobile-sheet-header");
+    header.click();
+    assert(sheet.dataset.sheetSize === "compact", "Detail did not shrink");
+    const input = document.getElementById("searchInput");
+    input.focus();
+    assert(sheet.dataset.sheetSize === "expanded" && sheet.dataset.view === "browse", "Search brought back old details");
+    assert(document.activeElement === input && getComputedStyle(input.closest(".search-section")).display !== "none", "Focused search input disappeared");
+    input.value = "asrama";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    assert(document.querySelectorAll("#searchSuggestions button").length === 5, "New suggestions unavailable");
+    const suggestions = document.getElementById("searchSuggestions").getBoundingClientRect();
+    assert(suggestions.bottom <= sheet.getBoundingClientRect().bottom + 1, "Suggestions clipped below the sheet");
+    document.getElementById("clearSearchBtn").click();
+    input.blur();
   });
   await check("Direct parking click yields one bounded popup above mobile sheet", async () => {
     core.map.stop();

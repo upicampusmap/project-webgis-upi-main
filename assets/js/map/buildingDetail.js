@@ -1,9 +1,9 @@
-import { map, buildingClusterGroup } from "./mapCore.js?v=2026.10.19.2";
-import { buildingsByName, markersByName, categoryVisibility, activeFilters, sidebarState } from "./state.js?v=2026.10.19.2";
-import { getIconConfigByCategory } from "./categories.js?v=2026.10.19.2";
-import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js?v=2026.10.19.2";
-import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.2";
-import { openSidebar, updateMobileSheetTitle, getMapPadding, setSidebarView } from "./layout.js?v=2026.10.19.2";
+import { map, buildingClusterGroup } from "./mapCore.js?v=2026.10.19.3";
+import { buildingsByName, markersByName, categoryVisibility, activeFilters, sidebarState } from "./state.js?v=2026.10.19.3";
+import { getIconConfigByCategory } from "./categories.js?v=2026.10.19.3";
+import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js?v=2026.10.19.3";
+import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.3";
+import { openSidebar, updateMobileSheetTitle, getMapPadding, setSidebarView } from "./layout.js?v=2026.10.19.3";
 
 let pulseTimer;
 let pulseElement;
@@ -47,7 +47,7 @@ export function openBuildingDetail(name) {
   document.querySelector(".map-legend-toggle")?.setAttribute("aria-expanded", "false");
   sidebarState.tab = "locations";
   sidebarState.building = name;
-  openSidebar();
+  openSidebar({ expanded: true });
   renderBuildingDetail(building);
   document.querySelector(".detail-building-name")?.focus({ preventScroll: true });
   focusBuildingByName(name);

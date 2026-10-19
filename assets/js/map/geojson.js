@@ -1,6 +1,6 @@
 // Validation and normalization are independent of Leaflet and the DOM.
-import { safeWebUrl } from "./utils.js?v=2026.10.19.2";
-import { optimizedPhotos } from "./photos.js?v=2026.10.19.2";
+import { safeWebUrl } from "./utils.js?v=2026.10.19.3";
+import { optimizedPhotos } from "./photos.js?v=2026.10.19.3";
 
 export function getFeatures(data) {
   if (!data || data.type !== "FeatureCollection" || !Array.isArray(data.features)) {

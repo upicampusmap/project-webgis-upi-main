@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="application-version" content="2026.10.19.2" />
+  <meta name="application-version" content="2026.10.19.3" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
   <title>Interactive Campus Map UPI</title>
 
@@ -23,7 +23,7 @@
   >
 
   <!-- CSS khusus halaman peta -->
-  <link rel="stylesheet" href="assets/css/map.css?v=2026.10.19.2" />
+  <link rel="stylesheet" href="assets/css/map.css?v=2026.10.19.3" />
 </head>
 
 <body>
@@ -64,11 +64,11 @@
   </div>
 
   <!-- SIDEBAR -->
-  <aside class="sidebar" id="sidebar" data-view="browse" aria-label="Panel informasi kampus">
-    <button class="mobile-sheet-header" aria-controls="sidebarContent" aria-expanded="true" type="button" onclick="toggleSidebar()">
-      <span id="mobileSheetAction">Sembunyikan</span>
+  <aside class="sidebar" id="sidebar" data-view="browse" data-sheet-size="compact" aria-label="Panel informasi kampus">
+    <button class="mobile-sheet-header" aria-controls="sidebarContent" aria-expanded="false" type="button" onclick="toggleSidebar()">
+      <span id="mobileSheetAction">Perbesar</span>
       <strong id="mobileSheetTitle">Lokasi</strong>
-      <i class="fa-solid fa-chevron-down" id="mobileSheetIcon"></i>
+      <i class="fa-solid fa-chevron-up" id="mobileSheetIcon"></i>
     </button>
 
     <div class="search-section">
@@ -160,7 +160,7 @@
   <!-- Leaflet.markercluster JS -->
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <script defer src="assets/js/bootstrap.js?v=2026.10.19.2"></script>
+  <script defer src="assets/js/bootstrap.js?v=2026.10.19.3"></script>
 
 </body>
 </html>
