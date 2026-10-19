@@ -1,9 +1,9 @@
-import { map, buildingClusterGroup } from "./mapCore.js?v=2026.10.19.4";
-import { buildingsByName, markersByName, categoryVisibility, activeFilters, sidebarState } from "./state.js?v=2026.10.19.4";
-import { getIconConfigByCategory } from "./categories.js?v=2026.10.19.4";
-import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js?v=2026.10.19.4";
-import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.4";
-import { openSidebar, updateMobileSheetTitle, getMapPadding, setSidebarView } from "./layout.js?v=2026.10.19.4";
+import { map, buildingClusterGroup } from "./mapCore.js?v=2026.10.19.5";
+import { buildingsByName, markersByName, categoryVisibility, activeFilters, sidebarState } from "./state.js?v=2026.10.19.5";
+import { getIconConfigByCategory } from "./categories.js?v=2026.10.19.5";
+import { getInitials, showToast, escapeHtml, safeWebUrl } from "./utils.js?v=2026.10.19.5";
+import { syncMarkersToFilter, syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.5";
+import { openSidebar, updateMobileSheetTitle, getMapPadding, setSidebarView } from "./layout.js?v=2026.10.19.5";
 
 let pulseTimer;
 let pulseElement;
@@ -29,7 +29,7 @@ function focusBuildingByName(name) {
   syncCategoryLayerInputs();
   if (!map.hasLayer(buildingClusterGroup)) buildingClusterGroup.addTo(map);
   if (pendingHighlight) map.off("moveend", pendingHighlight);
-  map.stop();
+  map.setView(map.getCenter(), map.getZoom(), { animate: false });
   // The selected zoom disables clustering. Highlight must never start another pan.
   pendingHighlight = () => highlightMarker(marker);
   map.once("moveend", pendingHighlight);

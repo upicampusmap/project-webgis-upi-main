@@ -3,16 +3,17 @@
 // Tanggung jawab: reset tampilan, cetak, toggle tile kampus,
 // toggle semua marker gedung, dan transparansi overlay.
 // =====================================================
-import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19.4";
-import { campusBounds, INITIAL_ZOOM } from "./config.js?v=2026.10.19.4";
-import { getMapPadding } from "./layout.js?v=2026.10.19.4";
-import { getVisibleCategoryKeys } from "./categories.js?v=2026.10.19.4";
-import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.4";
-import { categoryVisibility } from "./state.js?v=2026.10.19.4";
-import { syncMarkersToFilter } from "./markerVisibility.js?v=2026.10.19.4";
+import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19.5";
+import { campusBounds, INITIAL_ZOOM } from "./config.js?v=2026.10.19.5";
+import { getMapPadding } from "./layout.js?v=2026.10.19.5";
+import { getVisibleCategoryKeys } from "./categories.js?v=2026.10.19.5";
+import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.5";
+import { categoryVisibility } from "./state.js?v=2026.10.19.5";
+import { syncMarkersToFilter } from "./markerVisibility.js?v=2026.10.19.5";
 
 export function resetMap() {
-  map.stop();
+  // Cancel a flight without scheduling a zoom animation over the new overview.
+  map.setView(map.getCenter(), map.getZoom(), { animate: false });
   map.closePopup();
   // Center the whole campus in the area not covered by the toolbar/sidebar.
   map.fitBounds(campusBounds, { ...getMapPadding(), maxZoom: INITIAL_ZOOM, animate: false });
