@@ -4,7 +4,7 @@
 // + layer control + renderer/layerGroup parkir + cluster gedung.
 // Ini "composition root" untuk seluruh singleton Leaflet.
 // =====================================================
-import { INITIAL_CENTER, INITIAL_ZOOM, campusBounds } from "./config.js?v=2026.10.19.1";
+import { INITIAL_CENTER, INITIAL_ZOOM, campusBounds } from "./config.js?v=2026.10.19.2";
 
 export const map = L.map('map', {
   center: INITIAL_CENTER,

@@ -5,33 +5,35 @@
 // Handler onclick pada HTML yang dihasilkan diselesaikan lewat window.*
 // (di-wire di main.js), sehingga modul ini tidak perlu meng-import-nya.
 // =====================================================
-import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19.1";
-import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.19.1";
+import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19.2";
+import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.19.2";
 import {
   categoryIconStyles, getGroupedBuildings, getVisibleCategoryKeys, getCategoryIconHtml
-} from "./categories.js?v=2026.10.19.1";
-import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.19.1";
-import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.19.1";
-import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.1";
-import { escapeHtml } from "./utils.js?v=2026.10.19.1";
-import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.19.1";
+} from "./categories.js?v=2026.10.19.2";
+import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.19.2";
+import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.19.2";
+import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.2";
+import { escapeHtml } from "./utils.js?v=2026.10.19.2";
+import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.19.2";
 
 export function renderLocations() {
   const container = document.getElementById("sidebarContent");
+  const chipScroll = container.querySelector(".filter-chips-bar")?.scrollLeft || 0;
   sidebarState.building = null;
   setSidebarView("browse");
   const grouped = getGroupedBuildings();
   const visibleKeys = getVisibleCategoryKeys();
 
   // — Filter Chips bar —
-  let filterHtml = `<div class="filter-chips-bar">`;
-  filterHtml += `<button class="filter-chip ${activeFilters.size === 0 ? "filter-chip-active" : ""}" onclick="toggleFilter('all')">
+  let filterHtml = `<div class="filter-chips-bar" role="group" aria-label="Filter kategori fasilitas" title="Geser atau gunakan roda mouse untuk melihat kategori lainnya">`;
+  filterHtml += `<button type="button" class="filter-chip ${activeFilters.size === 0 ? "filter-chip-active" : ""}" data-filter-category="all" aria-pressed="${activeFilters.size === 0}" onclick="toggleFilter('all')">
     <i class="fa-solid fa-border-all"></i> Semua
   </button>`;
   visibleKeys.forEach(function(key) {
     let cfg = categoryIconStyles[key];
     let isActive = activeFilters.has(key);
     filterHtml += `<button
+      type="button" data-filter-category="${key}" aria-pressed="${isActive}"
       class="filter-chip ${isActive ? "filter-chip-active" : ""}"
       style="${isActive ? "--chip-color:" + cfg.color : ""}"
       onclick="toggleFilter('${key}')"
@@ -110,6 +112,7 @@ export function renderLocations() {
   html += renderParkingGroupHtml();
 
   container.innerHTML = html;
+  container.querySelector(".filter-chips-bar").scrollLeft = chipScroll;
 }
 
 function renderCategoryLayerControls() {

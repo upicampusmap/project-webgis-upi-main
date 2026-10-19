@@ -4,10 +4,10 @@
 // berdasarkan filter kategori (chips) + toggle show/hide kategori,
 // serta menyinkronkan input checkbox di tab Layer.
 // =====================================================
-import { buildingClusterGroup } from "./mapCore.js?v=2026.10.19.1";
-import { buildingMarkers, categoryVisibility, categoryPanelState, activeFilters } from "./state.js?v=2026.10.19.1";
-import { getVisibleCategoryKeys } from "./categories.js?v=2026.10.19.1";
-import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19.1";
+import { buildingClusterGroup } from "./mapCore.js?v=2026.10.19.2";
+import { buildingMarkers, categoryVisibility, categoryPanelState, activeFilters } from "./state.js?v=2026.10.19.2";
+import { getVisibleCategoryKeys } from "./categories.js?v=2026.10.19.2";
+import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19.2";
 
 export function toggleFilter(categoryKey) {
   if (categoryKey === "all") {

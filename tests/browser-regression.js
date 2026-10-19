@@ -10,18 +10,19 @@ async function check(name, run) {
   panel.textContent = results.join("\n");
 }
 try {
-  await import("../assets/js/map/main.js?v=2026.10.19.1");
-  const state = await import("../assets/js/map/state.js?v=2026.10.19.1");
-  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19.1");
-  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19.1");
-  const parking = await import("../assets/js/map/parking.js?v=2026.10.19.1");
-  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19.1");
-  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19.1");
-  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19.1");
-  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19.1");
-  const search = await import("../assets/js/map/search.js?v=2026.10.19.1");
-  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19.1");
-  const layout = await import("../assets/js/map/layout.js?v=2026.10.19.1");
+  await import("../assets/js/map/main.js?v=2026.10.19.2");
+  const state = await import("../assets/js/map/state.js?v=2026.10.19.2");
+  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19.2");
+  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19.2");
+  const parking = await import("../assets/js/map/parking.js?v=2026.10.19.2");
+  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19.2");
+  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19.2");
+  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19.2");
+  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19.2");
+  const search = await import("../assets/js/map/search.js?v=2026.10.19.2");
+  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19.2");
+  const layout = await import("../assets/js/map/layout.js?v=2026.10.19.2");
+  const { initCategoryScroll } = await import("../assets/js/map/categoryScroll.js?v=2026.10.19.2");
   function assertCampusOverview() {
     const { paddingTopLeft: topLeft, paddingBottomRight: bottomRight } = layout.getMapPadding();
     const size = core.map.getSize();
@@ -54,6 +55,90 @@ try {
       assert(core.parkingLayerGroup.getLayers().length === 2, "Parking groups duplicated");
     });
   }
+  await check("Mouse wheel scrolls category chips horizontally without trapping edges or zoom", () => {
+    const container = document.getElementById("sidebarContent");
+    initCategoryScroll(container); initCategoryScroll(container);
+    const bar = container.querySelector(".filter-chips-bar");
+    assert(bar.scrollWidth > bar.clientWidth, "Chip bar does not overflow");
+    bar.scrollLeft = 0;
+    const wheel = (options) => {
+      const event = new WheelEvent("wheel", { bubbles: true, cancelable: true, ...options });
+      bar.dispatchEvent(event);
+      return event;
+    };
+    assert(wheel({ deltaY: 80 }).defaultPrevented && Math.abs(bar.scrollLeft - 80) <= 1, "Wheel not converted, or duplicate listeners installed");
+    const beforeLine = bar.scrollLeft;
+    wheel({ deltaY: 1, deltaMode: 1 });
+    assert(Math.abs(bar.scrollLeft - beforeLine - 16) <= 1, "Wheel line units ignored");
+    const beforeZoom = bar.scrollLeft;
+    assert(!wheel({ deltaY: 80, ctrlKey: true }).defaultPrevented && bar.scrollLeft === beforeZoom, "Browser zoom intercepted");
+    assert(!wheel({ deltaX: 60 }).defaultPrevented, "Native horizontal trackpad gesture intercepted");
+    bar.scrollLeft = bar.scrollWidth;
+    assert(!wheel({ deltaY: 100 }).defaultPrevented, "End of bar traps vertical sidebar scrolling");
+    bar.scrollLeft = 0;
+    assert(!wheel({ deltaY: -100 }).defaultPrevented, "Start of bar traps vertical sidebar scrolling");
+  });
+  await check("Dragging chips scrolls without selecting filters; a normal click still selects", () => {
+    const bar = document.querySelector(".filter-chips-bar");
+    const button = bar.querySelector('[data-filter-category="academic"]');
+    const rect = bar.getBoundingClientRect();
+    const pointer = (target, type, x, buttons) => target.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: 91, pointerType: "mouse", isPrimary: true,
+      button: 0, buttons, clientX: x, clientY: rect.top + 10
+    }));
+    const center = core.map.getCenter();
+    const filters = [...state.activeFilters].join(",");
+    pointer(button, "pointerdown", rect.left + 180, 1);
+    pointer(window, "pointermove", rect.left + 60, 1);
+    assert(bar.scrollLeft >= 119 && bar.classList.contains("is-dragging"), "Mouse drag did not scroll");
+    pointer(window, "pointerup", rect.left + 60, 0);
+    const click = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 });
+    button.dispatchEvent(click);
+    assert(click.defaultPrevented && [...state.activeFilters].join(",") === filters, "Drag accidentally toggled a filter");
+    assert(!bar.classList.contains("is-dragging") && core.map.getCenter().equals(center), "Drag stuck or moved the map");
+    pointer(button, "pointerdown", rect.left + 100, 1);
+    pointer(window, "pointerup", rect.left + 100, 0);
+    button.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }));
+    const updatedBar = document.querySelector(".filter-chips-bar");
+    assert(state.activeFilters.has("academic") && updatedBar.querySelector('[data-filter-category="academic"]').getAttribute("aria-pressed") === "true", "Normal click failed after dragging");
+    assert(Math.abs(updatedBar.scrollLeft - 120) <= 1, "Selecting filter reset chip scroll position");
+    visibility.toggleFilter("all");
+  });
+  await check("Chip gestures survive rerender, cancel cleanly and leave native touch/keyboard working", () => {
+    let bar = document.querySelector(".filter-chips-bar");
+    bar.scrollLeft = 180;
+    visibility.toggleCategoryGroup("academic");
+    bar = document.querySelector(".filter-chips-bar");
+    assert(Math.abs(bar.scrollLeft - 180) <= 1, "Category rerender reset chip scroll");
+    visibility.toggleCategoryGroup("academic");
+    bar = document.querySelector(".filter-chips-bar");
+    const button = bar.querySelector('[data-filter-category="academic"]');
+    const y = bar.getBoundingClientRect().top + 10;
+    button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 92, pointerType: "mouse", button: 0, buttons: 1, clientX: 200, clientY: y }));
+    window.dispatchEvent(new PointerEvent("pointermove", { pointerId: 92, pointerType: "mouse", buttons: 1, clientX: 100, clientY: y }));
+    window.dispatchEvent(new PointerEvent("pointercancel", { pointerId: 92 }));
+    assert(!bar.classList.contains("is-dragging"), "Cancelled drag leaves grabbing state");
+    const beforeTouch = bar.scrollLeft;
+    button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 93, pointerType: "touch", buttons: 1, clientX: 200, clientY: y }));
+    const touchMove = new PointerEvent("pointermove", { cancelable: true, pointerId: 93, pointerType: "touch", buttons: 1, clientX: 50, clientY: y });
+    window.dispatchEvent(touchMove);
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 93 }));
+    assert(!touchMove.defaultPrevented && bar.scrollLeft === beforeTouch, "Native touch scrolling intercepted");
+    button.click(); // Keyboard/assistive click has detail=0.
+    assert(state.activeFilters.has("academic"), "Keyboard/assistive click blocked");
+    visibility.toggleFilter("all");
+    bar = document.querySelector(".filter-chips-bar");
+    const hybridButton = bar.querySelector('[data-filter-category="academic"]');
+    hybridButton.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 94, pointerType: "mouse", button: 0, buttons: 1, clientX: 200, clientY: y }));
+    window.dispatchEvent(new PointerEvent("pointermove", { pointerId: 94, pointerType: "mouse", buttons: 1, clientX: 100, clientY: y }));
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 94 })); // No click: mouse released outside the bar.
+    hybridButton.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 95, pointerType: "touch" }));
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 95, pointerType: "touch" }));
+    hybridButton.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 }));
+    assert(state.activeFilters.has("academic"), "Touch tap after mouse drag swallowed on hybrid device");
+    visibility.toggleFilter("all");
+    document.querySelector(".filter-chips-bar").scrollLeft = 0;
+  });
   await check("Clicking a building heading opens only its list and preserves it on data refresh", async () => {
     const id = document.querySelector("[data-category-group]").id;
     const key = document.getElementById(id).dataset.categoryGroup;
@@ -99,7 +184,7 @@ try {
     assert(core.parkingLayerGroup.getLayers().length === 2 && state.parkingPanelState.main === false, "Parking visibility failed to restore layers independently");
   });
   await check("GPS outside campus restores controls without leaving campus", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.1");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.2");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
     const before = core.map.getCenter();
@@ -117,7 +202,7 @@ try {
     }
   });
   await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.1");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.2");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
       getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })
