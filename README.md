@@ -85,7 +85,8 @@ Tidak ada langkah build npm. Unggah `images/optimized/`, kedua WebP beranda, dan
 seluruh modul baru bersama HTML/CSS yang diperbarui. Jangan mengunggah hanya satu
 file JavaScript karena modul saling mengimpor. Data dan tile yang ada tetap dipakai.
 
-Versi uji SUS `2026.10.19` mencakup refactoring data/layer, UI responsif,
-perbaikan GPS, hapus pencarian, serta pemusatan tampilan awal kampus.
+Versi uji SUS `2026.10.19.1` mencakup refactoring data/layer, UI responsif,
+perbaikan GPS, hapus pencarian, pemusatan tampilan awal kampus, serta menu
+kategori gedung/parkiran yang tertutup secara default.
 Lihat `docs/RELEASE-2026-10-19.md` dan `docs/RELEASE-2026-10-18.md` untuk
 cakupan, hasil pengujian, serta keterbatasannya.

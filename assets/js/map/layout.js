@@ -1,6 +1,6 @@
-import { map } from "./mapCore.js?v=2026.10.19";
-import { sidebarState } from "./state.js?v=2026.10.19";
-import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19";
+import { map } from "./mapCore.js?v=2026.10.19.1";
+import { sidebarState } from "./state.js?v=2026.10.19.1";
+import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19.1";
 
 export function isMobileLayout() {
   return window.matchMedia("(max-width: 700px)").matches;
@@ -106,7 +106,8 @@ export function initLayout() {
     if (!search.contains(event.relatedTarget)) document.body.dataset.searchFocused = "false";
   });
   map.on("popupopen", ({ popup }) => {
-    map.stop();
+    // Freeze a flight without scheduling a CSS zoom snap that could undo GPS focus.
+    map.setView(map.getCenter(), map.getZoom(), { animate: false });
     activePopup = popup;
     if (sidebarState.building) {
       sidebarState.building = null;

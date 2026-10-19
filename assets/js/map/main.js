@@ -4,32 +4,32 @@
 // window (agar atribut onclick/onchange/oninput di HTML tetap jalan),
 // memasang listener global, dan menjalankan urutan inisialisasi.
 // =====================================================
-import { map, upiCampusTile, parkingLayerGroup } from "./mapCore.js?v=2026.10.19";
-import { renderLegendItems, toggleLegend } from "./legend.js?v=2026.10.19";
+import { map, upiCampusTile, parkingLayerGroup } from "./mapCore.js?v=2026.10.19.1";
+import { renderLegendItems, toggleLegend } from "./legend.js?v=2026.10.19.1";
 import {
   renderSidebarSkeleton, showTab, renderActiveSidebarTab
-} from "./sidebar.js?v=2026.10.19";
-import { toggleSidebar, updateSidebarChrome, initLayout, closeSidebar } from "./layout.js?v=2026.10.19";
-import { searchBuilding, initSearchAutocomplete } from "./search.js?v=2026.10.19";
-import { locateMe, removeUserLocation } from "./geolocation.js?v=2026.10.19";
+} from "./sidebar.js?v=2026.10.19.1";
+import { toggleSidebar, updateSidebarChrome, initLayout, closeSidebar } from "./layout.js?v=2026.10.19.1";
+import { searchBuilding, initSearchAutocomplete } from "./search.js?v=2026.10.19.1";
+import { locateMe, removeUserLocation } from "./geolocation.js?v=2026.10.19.1";
 import {
   resetMap, printMap, toggleCampusTile, toggleBuildingMarkers, setCampusOpacity
-} from "./mapControls.js?v=2026.10.19";
+} from "./mapControls.js?v=2026.10.19.1";
 import {
   toggleFilter, toggleCategoryGroup,
   toggleCategoryVisibilityFromLocations, toggleCategoryMarkers
-} from "./markerVisibility.js?v=2026.10.19";
-import { sidebarState } from "./state.js?v=2026.10.19";
-import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.19";
+} from "./markerVisibility.js?v=2026.10.19.1";
+import { sidebarState } from "./state.js?v=2026.10.19.1";
+import { openBuildingDetail } from "./buildingDetail.js?v=2026.10.19.1";
 import {
   loadParkingGeoJson,
   toggleParkingMainGroup, toggleParkingSubGroup,
   toggleParkingVisibilityFromLocations, toggleAllParkingVisibilityFromLocations,
   focusParkingItem, toggleParkingLayer, toggleAllParkingLayers, syncParkingLayerInputs
-} from "./parking.js?v=2026.10.19";
+} from "./parking.js?v=2026.10.19.1";
 import {
   loadBuildingsGeoJson, retryLoadBuildings
-} from "./buildingsData.js?v=2026.10.19";
+} from "./buildingsData.js?v=2026.10.19.1";
 
 // ---------------------------------------------------------------
 // Ekspos handler yang dipanggil dari atribut onclick/onchange/oninput

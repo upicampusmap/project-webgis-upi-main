@@ -10,18 +10,18 @@ async function check(name, run) {
   panel.textContent = results.join("\n");
 }
 try {
-  await import("../assets/js/map/main.js?v=2026.10.19");
-  const state = await import("../assets/js/map/state.js?v=2026.10.19");
-  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19");
-  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19");
-  const parking = await import("../assets/js/map/parking.js?v=2026.10.19");
-  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19");
-  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19");
-  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19");
-  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19");
-  const search = await import("../assets/js/map/search.js?v=2026.10.19");
-  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19");
-  const layout = await import("../assets/js/map/layout.js?v=2026.10.19");
+  await import("../assets/js/map/main.js?v=2026.10.19.1");
+  const state = await import("../assets/js/map/state.js?v=2026.10.19.1");
+  const core = await import("../assets/js/map/mapCore.js?v=2026.10.19.1");
+  const data = await import("../assets/js/map/buildingsData.js?v=2026.10.19.1");
+  const parking = await import("../assets/js/map/parking.js?v=2026.10.19.1");
+  const sidebar = await import("../assets/js/map/sidebar.js?v=2026.10.19.1");
+  const visibility = await import("../assets/js/map/markerVisibility.js?v=2026.10.19.1");
+  const controls = await import("../assets/js/map/mapControls.js?v=2026.10.19.1");
+  const detail = await import("../assets/js/map/buildingDetail.js?v=2026.10.19.1");
+  const search = await import("../assets/js/map/search.js?v=2026.10.19.1");
+  const { campusBounds } = await import("../assets/js/map/config.js?v=2026.10.19.1");
+  const layout = await import("../assets/js/map/layout.js?v=2026.10.19.1");
   function assertCampusOverview() {
     const { paddingTopLeft: topLeft, paddingBottomRight: bottomRight } = layout.getMapPadding();
     const size = core.map.getSize();
@@ -33,11 +33,19 @@ try {
     assert(nw.x >= topLeft[0] - 1 && nw.y >= topLeft[1] - 1 && se.x <= size.x - bottomRight[0] + 1 && se.y <= size.y - bottomRight[1] + 1, "Campus clipped by panel/toolbar");
   }
   await check("Initial campus view is centered and fits the unobstructed map area", assertCampusOverview);
+  await check("Building categories and all parking groups start collapsed", () => {
+    const headers = [...document.querySelectorAll("[data-category-group], [data-parking-group]")];
+    assert(headers.length > 0, "Category headings missing");
+    assert(headers.every((button) => button.getAttribute("aria-expanded") === "false" && document.getElementById(button.getAttribute("aria-controls"))?.hidden), "A group starts expanded");
+    assert([...document.querySelectorAll("[data-building-name], [data-parking-id]")].every((row) => row.getClientRects().length === 0), "Location rows visible before opening headings");
+    assert(core.buildingClusterGroup.getLayers().length === 77, "Collapsing lists hides map markers");
+  });
   const realFetch = window.testOriginalFetch;
   if (new URLSearchParams(location.search).has("parking-failure")) {
     await check("Partial parking failure preserves car polygons and shows retry", () => {
       assert(state.parkingItems.length === 46, "Car layer missing or motor was loaded");
       assert(document.querySelector(".data-status").textContent.includes("gagal"), "Failure appears as permanent loading");
+      assert(!document.querySelector(".data-status").closest("[hidden]"), "Parking retry hidden inside collapsed group");
     });
     window.fetch = realFetch;
     await parking.loadParkingGeoJson();
@@ -46,8 +54,52 @@ try {
       assert(core.parkingLayerGroup.getLayers().length === 2, "Parking groups duplicated");
     });
   }
+  await check("Clicking a building heading opens only its list and preserves it on data refresh", async () => {
+    const id = document.querySelector("[data-category-group]").id;
+    const key = document.getElementById(id).dataset.categoryGroup;
+    document.getElementById(id).click();
+    assert(document.getElementById(id).getAttribute("aria-expanded") === "true", "Heading did not open");
+    assert(!document.getElementById(document.getElementById(id).getAttribute("aria-controls")).hidden, "Building list still hidden");
+    assert(document.activeElement.id === id, "Heading loses keyboard focus on rerender");
+    assert([...document.querySelectorAll("[data-category-group]")].filter((button) => button.id !== id).every((button) => button.getAttribute("aria-expanded") === "false"), "Other categories opened too");
+    await data.retryLoadBuildings();
+    assert(state.categoryPanelState[key] === true && document.getElementById(id).getAttribute("aria-expanded") === "true", "Refresh reset the chosen category");
+    document.getElementById(id).click();
+    assert(document.getElementById(id).getAttribute("aria-expanded") === "false", "Heading did not close");
+  });
+  await check("Parking parent reveals type headings; each type opens only after a click", () => {
+    const click = (type) => document.getElementById(`parking-${type}-toggle`).click();
+    click("main");
+    assert(!document.getElementById("parking-main-items").hidden, "Parking parent stayed hidden");
+    for (const type of ["car", "motor"]) {
+      assert(document.getElementById(`parking-${type}-toggle`).getAttribute("aria-expanded") === "false", "Parking child auto-expanded");
+      assert(document.getElementById(`parking-${type}-items`).hidden, "Parking rows appeared without a click");
+    }
+    click("car");
+    assert(!document.getElementById("parking-car-items").hidden && document.getElementById("parking-car-items").querySelectorAll("[data-parking-id]").length === 46, "Car list did not open");
+    assert(document.getElementById("parking-motor-items").hidden, "Motor list opened with car list");
+    click("car"); click("motor");
+    assert(!document.getElementById("parking-motor-items").hidden && document.getElementById("parking-motor-items").querySelectorAll("[data-parking-id]").length === 3, "Motor list did not open");
+    click("main"); click("main");
+    assert(!document.getElementById("parking-motor-items").hidden, "Parent toggle lost chosen child state");
+    click("motor"); click("main");
+    assert(Object.values(state.parkingPanelState).every((open) => open === false), "Parking groups failed to close");
+  });
+  await check("Layer visibility controls do not expand collapsed lists", () => {
+    const id = document.querySelector("[data-category-group]").id;
+    const eye = () => document.getElementById(id).closest(".category-group-header").querySelector(".category-visibility-toggle").click();
+    eye();
+    assert(document.getElementById(id).getAttribute("aria-expanded") === "false", "Marker visibility expanded category");
+    eye();
+    assert(core.buildingClusterGroup.getLayers().length === 77, "Marker visibility did not restore markers");
+    const parkingEye = () => document.getElementById("parking-main-toggle").closest(".category-group-header").querySelector(".category-visibility-toggle").click();
+    parkingEye();
+    assert(state.parkingPanelState.main === false, "Parking visibility expanded list");
+    parkingEye();
+    assert(core.parkingLayerGroup.getLayers().length === 2 && state.parkingPanelState.main === false, "Parking visibility failed to restore layers independently");
+  });
   await check("GPS outside campus restores controls without leaving campus", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.1");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     core.map.stop();
     const before = core.map.getCenter();
@@ -65,7 +117,7 @@ try {
     }
   });
   await check("GPS inside campus focuses at zoom 18 with a visible popup", async () => {
-    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19");
+    const geolocation = await import("../assets/js/map/geolocation.js?v=2026.10.19.1");
     const descriptor = Object.getOwnPropertyDescriptor(navigator, "geolocation");
     Object.defineProperty(navigator, "geolocation", { configurable: true, value: {
       getCurrentPosition: (success) => success({ coords: { latitude: -6.8605, longitude: 107.5905, accuracy: 8 } })

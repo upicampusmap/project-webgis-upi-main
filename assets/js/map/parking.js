@@ -3,12 +3,12 @@
 // Tanggung jawab: memuat GeoJSON parkir, menggambar area + pola arsir,
 // merender daftar/kontrol parkir di sidebar, dan toggle visibilitasnya.
 // =====================================================
-import { map, parkingRenderer, parkingLayerGroup } from "./mapCore.js?v=2026.10.19";
-import { parkingItems, parkingVisibility, parkingPanelState, parkingLoadState } from "./state.js?v=2026.10.19";
-import { closeSidebar, getMapPadding } from "./layout.js?v=2026.10.19";
-import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19";
-import { fetchGeoJson, getFeatures, isPolygonGeometry } from "./geojson.js?v=2026.10.19";
-import { escapeHtml } from "./utils.js?v=2026.10.19";
+import { map, parkingRenderer, parkingLayerGroup } from "./mapCore.js?v=2026.10.19.1";
+import { parkingItems, parkingVisibility, parkingPanelState, parkingLoadState } from "./state.js?v=2026.10.19.1";
+import { closeSidebar, getMapPadding } from "./layout.js?v=2026.10.19.1";
+import { requestSidebarRender } from "./uiEvents.js?v=2026.10.19.1";
+import { fetchGeoJson, getFeatures, isPolygonGeometry } from "./geojson.js?v=2026.10.19.1";
+import { escapeHtml } from "./utils.js?v=2026.10.19.1";
 
 export const parkingTypeStyles = {
   car: {
@@ -134,7 +134,7 @@ function getParkingItemsByType(type) {
 function renderParkingSubGroup(type) {
   const config = getParkingTypeConfig(type);
   const items = getParkingItemsByType(type);
-  const isOpen = parkingPanelState[type] !== false;
+  const isOpen = parkingPanelState[type] === true;
   const isVisible = isParkingVisible(type);
 
   if (!items.length) {
@@ -144,7 +144,7 @@ function renderParkingSubGroup(type) {
   let html = `
     <div class="parking-subcategory">
       <div class="parking-subcategory-header">
-        <button class="category-group-main" onclick="toggleParkingSubGroup('${type}')">
+        <button type="button" class="category-group-main" id="parking-${type}-toggle" data-parking-group="${type}" aria-expanded="${isOpen}" aria-controls="parking-${type}-items" onclick="toggleParkingSubGroup('${type}')">
           <span class="parking-subcategory-title">
             <span
               class="parking-swatch"
@@ -166,7 +166,7 @@ function renderParkingSubGroup(type) {
           <span>${isVisible ? "Tampil" : "Sembunyi"}</span>
         </button>
       </div>
-      <div class="category-group-body ${isOpen ? "" : "collapsed"}">
+      <div id="parking-${type}-items" class="category-group-body ${isOpen ? "" : "collapsed"}" ${isOpen ? "" : "hidden"}>
   `;
 
   items.forEach(function(item) {
@@ -198,13 +198,13 @@ function renderParkingSubGroup(type) {
 export function renderParkingGroupHtml() {
   if (!parkingItems.length) return renderParkingStatus();
 
-  const isOpen = parkingPanelState.main !== false;
+  const isOpen = parkingPanelState.main === true;
   const isVisible = isParkingVisible("car") || isParkingVisible("motor");
 
   return `
     <div class="category-group">
       <div class="category-group-header">
-        <button class="category-group-main" onclick="toggleParkingMainGroup()">
+        <button type="button" class="category-group-main" id="parking-main-toggle" data-parking-group="main" aria-expanded="${isOpen}" aria-controls="parking-main-items" onclick="toggleParkingMainGroup()">
           <span class="category-group-title">
             <span class="category-sidebar-icon" style="--marker-color: #475569;">
               <i class="fa-solid fa-square-parking"></i>
@@ -225,11 +225,11 @@ export function renderParkingGroupHtml() {
           <span>${isVisible ? "Tampil" : "Sembunyi"}</span>
         </button>
       </div>
-      <div class="category-group-body ${isOpen ? "" : "collapsed"}">
+      <div id="parking-main-items" class="category-group-body ${isOpen ? "" : "collapsed"}" ${isOpen ? "" : "hidden"}>
         ${renderParkingSubGroup("car")}
         ${renderParkingSubGroup("motor")}
-        ${renderParkingStatus()}
       </div>
+      ${renderParkingStatus()}
     </div>
   `;
 }
@@ -308,13 +308,15 @@ export function syncParkingLayerInputs() {
 }
 
 export function toggleParkingMainGroup() {
-  parkingPanelState.main = parkingPanelState.main === false;
+  parkingPanelState.main = parkingPanelState.main !== true;
   requestSidebarRender();
+  document.getElementById("parking-main-toggle")?.focus({ preventScroll: true });
 }
 
 export function toggleParkingSubGroup(type) {
-  parkingPanelState[type] = parkingPanelState[type] === false;
+  parkingPanelState[type] = parkingPanelState[type] !== true;
   requestSidebarRender();
+  document.getElementById(`parking-${type}-toggle`)?.focus({ preventScroll: true });
 }
 
 export function toggleParkingVisibilityFromLocations(type) {

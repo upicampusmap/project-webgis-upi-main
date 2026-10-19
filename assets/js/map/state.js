@@ -18,9 +18,9 @@ export const parkingVisibility = {
 };
 
 export const parkingPanelState = {
-  main: true,
-  car: true,
-  motor: true
+  main: false,
+  car: false,
+  motor: false
 };
 
 export const categoryPanelState = {};

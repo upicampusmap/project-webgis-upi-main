@@ -5,16 +5,16 @@
 // Handler onclick pada HTML yang dihasilkan diselesaikan lewat window.*
 // (di-wire di main.js), sehingga modul ini tidak perlu meng-import-nya.
 // =====================================================
-import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19";
-import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.19";
+import { map, upiCampusTile } from "./mapCore.js?v=2026.10.19.1";
+import { activeFilters, categoryPanelState, categoryVisibility, sidebarState, buildingsByName } from "./state.js?v=2026.10.19.1";
 import {
   categoryIconStyles, getGroupedBuildings, getVisibleCategoryKeys, getCategoryIconHtml
-} from "./categories.js?v=2026.10.19";
-import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.19";
-import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.19";
-import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19";
-import { escapeHtml } from "./utils.js?v=2026.10.19";
-import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.19";
+} from "./categories.js?v=2026.10.19.1";
+import { renderParkingGroupHtml, renderParkingLayerControls, syncParkingLayerInputs } from "./parking.js?v=2026.10.19.1";
+import { renderBuildingDetail } from "./buildingDetail.js?v=2026.10.19.1";
+import { syncCategoryLayerInputs } from "./markerVisibility.js?v=2026.10.19.1";
+import { escapeHtml } from "./utils.js?v=2026.10.19.1";
+import { updateMobileSheetTitle, setSidebarView } from "./layout.js?v=2026.10.19.1";
 
 export function renderLocations() {
   const container = document.getElementById("sidebarContent");
@@ -58,13 +58,13 @@ export function renderLocations() {
     const categoryConfig = categoryIconStyles[categoryKey];
     const groupBuildings = grouped[categoryKey];
     if (!groupBuildings || !groupBuildings.length) return;
-    const isOpen = categoryPanelState[categoryKey] !== false;
+    const isOpen = categoryPanelState[categoryKey] === true;
     const isVisible = categoryVisibility[categoryKey] !== false;
 
     html += `
       <div class="category-group">
         <div class="category-group-header">
-          <button class="category-group-main" onclick="toggleCategoryGroup('${categoryKey}')">
+          <button type="button" class="category-group-main" id="category-${categoryKey}-toggle" data-category-group="${categoryKey}" aria-expanded="${isOpen}" aria-controls="category-${categoryKey}-items" onclick="toggleCategoryGroup('${categoryKey}')">
             <span class="category-group-title">
               <span class="category-sidebar-icon" style="--marker-color:${categoryConfig.color}"><i class="fa-solid ${categoryConfig.icon}"></i></span>
               <span>${categoryConfig.label}</span>
@@ -83,7 +83,7 @@ export function renderLocations() {
             <span>${isVisible ? "Tampil" : "Sembunyi"}</span>
           </button>
         </div>
-        <div class="category-group-body ${isOpen ? "" : "collapsed"}">
+        <div id="category-${categoryKey}-items" class="category-group-body ${isOpen ? "" : "collapsed"}" ${isOpen ? "" : "hidden"}>
     `;
 
     groupBuildings.forEach(function(building) {
